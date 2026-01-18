@@ -12,27 +12,37 @@
 
 namespace sfrmat5 {
 
-Matrix::Matrix(int r, int c, double value) : rows(r), cols(c), data(r * c, value) {}
-double &Matrix::operator()(int r, int c) { return data[r * cols + c]; }
-double Matrix::operator()(int r, int c) const { return data[r * cols + c]; }
+template <typename T>
+Matrix<T>::Matrix(int r, int c, T value) : rows(r), cols(c), data(r * c, value) {}
 
-Image::Image(int r, int c, int ch, double value)
+template <typename T>
+T &Matrix<T>::operator()(int r, int c) {
+    return data[r * cols + c];
+}
+
+template <typename T>
+T Matrix<T>::operator()(int r, int c) const {
+    return data[r * cols + c];
+}
+
+template <typename T>
+Image<T>::Image(int r, int c, int ch, T value)
     : rows(r), cols(c), channels(ch), data(r * c * ch, value) {}
-double &Image::at(int r, int c, int ch) { return data[(ch * rows + r) * cols + c]; }
-double Image::at(int r, int c, int ch) const { return data[(ch * rows + r) * cols + c]; }
+
+template <typename T>
+T &Image<T>::at(int r, int c, int ch) {
+    return data[(ch * rows + r) * cols + c];
+}
+
+template <typename T>
+T Image<T>::at(int r, int c, int ch) const {
+    return data[(ch * rows + r) * cols + c];
+}
 
 namespace {
 
 double clip_value(double in, double low, double high) {
     return std::min(std::max(in, low), high);
-}
-
-std::vector<double> clip_vector(const std::vector<double> &in, double low, double high) {
-    std::vector<double> out = in;
-    for (double &v : out) {
-        v = clip_value(v, low, high);
-    }
-    return out;
 }
 
 double mean(const std::vector<double> &v) {
@@ -184,8 +194,8 @@ std::vector<double> conv_same(const std::vector<double> &x, const std::vector<do
     return same;
 }
 
-Matrix deriv1(const Matrix &a, const std::vector<double> &fil) {
-    Matrix b(a.rows, a.cols, 0.0);
+Matrix<double> deriv1(const Matrix<double> &a, const std::vector<double> &fil) {
+    Matrix<double> b(a.rows, a.cols, 0.0);
     for (int r = 0; r < a.rows; ++r) {
         std::vector<double> row(a.cols);
         for (int c = 0; c < a.cols; ++c) {
@@ -234,8 +244,8 @@ std::vector<double> cent(const std::vector<double> &a, double center) {
     return b;
 }
 
-Image rotate90(const Image &in) {
-    Image out(in.cols, in.rows, in.channels, 0.0);
+Image<double> rotate90(const Image<double> &in) {
+    Image<double> out(in.cols, in.rows, in.channels, 0.0);
     for (int ch = 0; ch < in.channels; ++ch) {
         for (int r = 0; r < in.rows; ++r) {
             for (int c = 0; c < in.cols; ++c) {
@@ -247,13 +257,13 @@ Image rotate90(const Image &in) {
 }
 
 struct RotateResult {
-    Image image;
+    Image<double> image;
     int nlin = 0;
     int npix = 0;
     int rflag = 0;
 };
 
-RotateResult rotatev2(const Image &input) {
+RotateResult rotatev2(const Image<double> &input) {
     RotateResult result{input, input.rows, input.cols, 0};
     int nlin = input.rows;
     int npix = input.cols;
@@ -385,7 +395,7 @@ struct ProjectResult {
     int status = 0;
 };
 
-ProjectResult project2(const Matrix &bb, const std::vector<double> &fitme, int fac) {
+ProjectResult project2(const Matrix<double> &bb, const std::vector<double> &fitme, int fac) {
     int nlin = bb.rows;
     int npix = bb.cols;
     if (fac <= 0) {
@@ -429,10 +439,8 @@ ProjectResult project2(const Matrix &bb, const std::vector<double> &fitme, int f
     result.point.assign(nn, 0.0);
     int start = 1 + static_cast<int>(std::round(0.5 * del));
 
-    int zero_counts = 0;
     for (int i = start; i < start + nn; ++i) {
         if (counts[i - 1] == 0.0) {
-            zero_counts++;
             result.status = 1;
             if (i == 1) {
                 counts[i - 1] = counts[i];
@@ -489,7 +497,7 @@ std::vector<std::complex<double>> fft(const std::vector<std::complex<double>> &x
     return out;
 }
 
-std::vector<double> findfreq(const Matrix &dat, double val, int imax, int fflag) {
+std::vector<double> findfreq(const Matrix<double> &dat, double val, int imax, int fflag) {
     int nc = dat.cols - 1;
     std::vector<double> freqval(nc, 0.0);
     std::vector<double> sfrval(nc, 0.0);
@@ -548,9 +556,9 @@ std::vector<double> findfreq(const Matrix &dat, double val, int imax, int fflag)
     return out;
 }
 
-Matrix sampeff(const Matrix &dat, const std::vector<double> &val, double del, int fflag) {
+Matrix<double> sampeff(const Matrix<double> &dat, const std::vector<double> &val, double del, int fflag) {
     if (dat.rows == 0 || dat.cols < 2) {
-        return Matrix();
+        return Matrix<double>();
     }
     double hs = 0.495 / del;
     int imax = dat.rows;
@@ -562,11 +570,11 @@ Matrix sampeff(const Matrix &dat, const std::vector<double> &val, double del, in
         }
     }
     if (nindex < 0) {
-        return Matrix(val.size(), dat.cols - 1, 0.0);
+        return Matrix<double>(static_cast<int>(val.size()), dat.cols - 1, 0.0);
     }
 
     int nc = dat.cols - 1;
-    Matrix eff(static_cast<int>(val.size()), nc, 0.0);
+    Matrix<double> eff(static_cast<int>(val.size()), nc, 0.0);
     for (size_t v = 0; v < val.size(); ++v) {
         std::vector<double> freq_sfr = findfreq(dat, val[v], imax, fflag);
         for (int c = 0; c < nc; ++c) {
@@ -604,13 +612,11 @@ void rsquare(const std::vector<double> &y, const std::vector<double> &f, double 
     rmse = std::sqrt(ss_res / static_cast<double>(yy.size()));
 }
 
-}  // namespace
-
-SfrResult compute_sfr(const Image &input,
-                      double del,
-                      int npol,
-                      int wflag,
-                      const std::array<double, 3> &weight) {
+SfrResult<double> compute_sfr_double(const Image<double> &input,
+                                    double del,
+                                    int npol,
+                                    int wflag,
+                                    const std::array<double, 3> &weight) {
     if (input.rows == 0 || input.cols == 0) {
         throw std::runtime_error("Empty input image");
     }
@@ -618,9 +624,9 @@ SfrResult compute_sfr(const Image &input,
     double alpha = 1.0;
     npol = std::min(npol, 5);
 
-    Image a = input;
+    Image<double> a = input;
     if (a.channels == 3) {
-        Image out(a.rows, a.cols, 4, 0.0);
+        Image<double> out(a.rows, a.cols, 4, 0.0);
         for (int r = 0; r < a.rows; ++r) {
             for (int c = 0; c < a.cols; ++c) {
                 double lum = weight[0] * a.at(r, c, 0) +
@@ -680,13 +686,13 @@ SfrResult compute_sfr(const Image &input,
     std::vector<std::vector<double>> fitme1(ncol);
 
     for (int color = 0; color < ncol; ++color) {
-        Matrix plane(nlin, npix, 0.0);
+        Matrix<double> plane(nlin, npix, 0.0);
         for (int r = 0; r < nlin; ++r) {
             for (int c = 0; c < npix; ++c) {
                 plane(r, c) = a.at(r, c, color);
             }
         }
-        Matrix deriv = deriv1(plane, fil1);
+        Matrix<double> deriv = deriv1(plane, fil1);
         for (int n = 0; n < nlin; ++n) {
             std::vector<double> row(npix, 0.0);
             for (int c = 0; c < npix; ++c) {
@@ -746,7 +752,7 @@ SfrResult compute_sfr(const Image &input,
     }
     nlin1 = std::max(1, std::min(nlin1, nlin));
     if (nlin1 < nlin) {
-        Image cropped(nlin1, npix, ncol, 0.0);
+        Image<double> cropped(nlin1, npix, ncol, 0.0);
         for (int r = 0; r < nlin1; ++r) {
             for (int c = 0; c < npix; ++c) {
                 for (int ch = 0; ch < ncol; ++ch) {
@@ -775,11 +781,11 @@ SfrResult compute_sfr(const Image &input,
     int freqlim = (nbin == 1) ? 2 : 1;
     int nn2out = static_cast<int>(std::round(nn2 * freqlim / 2.0));
 
-    Matrix mtf(nn, ncol, 0.0);
+    Matrix<double> mtf(nn, ncol, 0.0);
     std::vector<double> esf_last;
 
     for (int color = 0; color < ncol; ++color) {
-        Matrix plane(nlin, npix, 0.0);
+        Matrix<double> plane(nlin, npix, 0.0);
         for (int r = 0; r < nlin; ++r) {
             for (int c = 0; c < npix; ++c) {
                 plane(r, c) = a.at(r, c, color);
@@ -787,11 +793,11 @@ SfrResult compute_sfr(const Image &input,
         }
         ProjectResult proj = project2(plane, fitme[color], nbin);
         esf_last = proj.point;
-        Matrix esf_mat(1, static_cast<int>(esf_last.size()), 0.0);
+        Matrix<double> esf_mat(1, static_cast<int>(esf_last.size()), 0.0);
         for (int i = 0; i < static_cast<int>(esf_last.size()); ++i) {
             esf_mat(0, i) = esf_last[i];
         }
-        Matrix deriv = deriv1(esf_mat, fil2);
+        Matrix<double> deriv = deriv1(esf_mat, fil2);
         std::vector<double> c(nn, 0.0);
         for (int i = 0; i < nn; ++i) {
             c[i] = deriv(0, i);
@@ -840,7 +846,7 @@ SfrResult compute_sfr(const Image &input,
     for (int n = 0; n < nn; ++n) {
         freq[n] = static_cast<double>(n) / (del2 * nn);
     }
-    Matrix dat(nn2out, ncol + 1, 0.0);
+    Matrix<double> dat(nn2out, ncol + 1, 0.0);
     for (int i = 0; i < nn2out; ++i) {
         dat(i, 0) = freq[i];
         for (int c = 0; c < ncol; ++c) {
@@ -849,7 +855,7 @@ SfrResult compute_sfr(const Image &input,
     }
 
     int fit_cols = static_cast<int>(fitme[0].size());
-    Matrix fitout(ncol, (ncol > 2) ? fit_cols + 1 : fit_cols, 0.0);
+    Matrix<double> fitout(ncol, (ncol > 2) ? fit_cols + 1 : fit_cols, 0.0);
     for (int r = 0; r < ncol; ++r) {
         for (int c = 0; c < fit_cols; ++c) {
             fitout(r, c) = fitme[r][c];
@@ -860,11 +866,11 @@ SfrResult compute_sfr(const Image &input,
     }
 
     std::vector<double> val = {0.1, 0.5};
-    Matrix eff = sampeff(dat, val, delimage, 0);
+    Matrix<double> eff = sampeff(dat, val, delimage, 0);
     std::vector<double> freq_sfr = findfreq(dat, 0.5, dat.rows, 0);
     double sfr50 = freq_sfr.empty() ? 0.0 : freq_sfr[0];
 
-    SfrResult result;
+    SfrResult<double> result;
     result.status = 0;
     result.dat = dat;
     result.e = eff;
@@ -875,5 +881,84 @@ SfrResult compute_sfr(const Image &input,
     result.del2 = del2;
     return result;
 }
+
+template <typename T>
+Image<double> to_double_image(const Image<T> &input) {
+    Image<double> out(input.rows, input.cols, input.channels, 0.0);
+    for (int ch = 0; ch < input.channels; ++ch) {
+        for (int r = 0; r < input.rows; ++r) {
+            for (int c = 0; c < input.cols; ++c) {
+                out.at(r, c, ch) = static_cast<double>(input.at(r, c, ch));
+            }
+        }
+    }
+    return out;
+}
+
+template <typename T>
+Matrix<T> cast_matrix(const Matrix<double> &input) {
+    Matrix<T> out(input.rows, input.cols, static_cast<T>(0));
+    for (int r = 0; r < input.rows; ++r) {
+        for (int c = 0; c < input.cols; ++c) {
+            out(r, c) = static_cast<T>(input(r, c));
+        }
+    }
+    return out;
+}
+
+template <typename T>
+std::vector<T> cast_vector(const std::vector<double> &input) {
+    std::vector<T> out(input.size(), static_cast<T>(0));
+    for (size_t i = 0; i < input.size(); ++i) {
+        out[i] = static_cast<T>(input[i]);
+    }
+    return out;
+}
+
+template <typename T>
+SfrResult<T> cast_result(const SfrResult<double> &input) {
+    SfrResult<T> out;
+    out.status = input.status;
+    out.dat = cast_matrix<T>(input.dat);
+    out.e = cast_matrix<T>(input.e);
+    out.sfr50 = static_cast<T>(input.sfr50);
+    out.fitme = cast_matrix<T>(input.fitme);
+    out.esf = cast_vector<T>(input.esf);
+    out.nbin = input.nbin;
+    out.del2 = static_cast<T>(input.del2);
+    return out;
+}
+
+}  // namespace
+
+template <typename T>
+SfrResult<T> SfrMat5<T>::compute_sfr(const Image<T> &input,
+                                    T del,
+                                    int npol,
+                                    int wflag,
+                                    const std::array<T, 3> &weight) {
+    Image<double> img = to_double_image(input);
+    std::array<double, 3> w = {static_cast<double>(weight[0]),
+                               static_cast<double>(weight[1]),
+                               static_cast<double>(weight[2])};
+    SfrResult<double> res = compute_sfr_double(img,
+                                               static_cast<double>(del),
+                                               npol,
+                                               wflag,
+                                               w);
+    return cast_result<T>(res);
+}
+
+template class SfrMat5<float>;
+template class SfrMat5<double>;
+
+template struct Matrix<float>;
+template struct Matrix<double>;
+
+template struct Image<float>;
+template struct Image<double>;
+
+template struct SfrResult<float>;
+template struct SfrResult<double>;
 
 }  // namespace sfrmat5

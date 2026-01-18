@@ -9,11 +9,13 @@
 
 namespace {
 
+using Scalar = double;
+
 bool nearly_zero(double v) {
     return std::abs(v) < 1e-9;
 }
 
-bool check_frequency_axis(const sfrmat5::Matrix &dat) {
+bool check_frequency_axis(const sfrmat5::Matrix<Scalar> &dat) {
     if (dat.rows < 2 || dat.cols < 2) {
         return false;
     }
@@ -46,7 +48,7 @@ int32_t read_i32(std::ifstream &in) {
     return static_cast<int32_t>(read_u32(in));
 }
 
-sfrmat5::Image load_bmp(const std::string &path) {
+sfrmat5::Image<Scalar> load_bmp(const std::string &path) {
     std::ifstream in(path, std::ios::binary);
     if (!in) {
         throw std::runtime_error("Failed to open BMP");
@@ -101,7 +103,7 @@ sfrmat5::Image load_bmp(const std::string &path) {
     int rows = height;
     int cols = width;
     int channels = (bitCount == 24) ? 3 : 1;
-    sfrmat5::Image img(rows, cols, channels, 0.0);
+    sfrmat5::Image<Scalar> img(rows, cols, channels, static_cast<Scalar>(0));
 
     int row_bytes = ((bitCount * cols + 31) / 32) * 4;
     std::vector<uint8_t> row(row_bytes, 0);
@@ -117,13 +119,13 @@ sfrmat5::Image load_bmp(const std::string &path) {
                 uint8_t b = row[idx];
                 uint8_t g = row[idx + 1];
                 uint8_t rch = row[idx + 2];
-                img.at(dst_row, c, 0) = static_cast<double>(rch);
-                img.at(dst_row, c, 1) = static_cast<double>(g);
-                img.at(dst_row, c, 2) = static_cast<double>(b);
+                img.at(dst_row, c, 0) = static_cast<Scalar>(rch);
+                img.at(dst_row, c, 1) = static_cast<Scalar>(g);
+                img.at(dst_row, c, 2) = static_cast<Scalar>(b);
             }
         } else {
             for (int c = 0; c < cols; ++c) {
-                img.at(dst_row, c, 0) = static_cast<double>(row[c]);
+                img.at(dst_row, c, 0) = static_cast<Scalar>(row[c]);
             }
         }
     }
@@ -134,8 +136,8 @@ sfrmat5::Image load_bmp(const std::string &path) {
 
 int main() {
     std::string path = "Example_Images/Test_edge1.bmp";
-    sfrmat5::Image img = load_bmp(path);
-    sfrmat5::SfrResult result = sfrmat5::compute_sfr(img, 1.0, 5, 0);
+    sfrmat5::Image<Scalar> img = load_bmp(path);
+    sfrmat5::SfrResult<Scalar> result = sfrmat5::SfrMat5<Scalar>::compute_sfr(img, static_cast<Scalar>(1), 5, 0);
 
     if (result.dat.rows == 0 || result.dat.cols < 2) {
         std::cerr << "SFR data missing\n";

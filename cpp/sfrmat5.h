@@ -5,46 +5,56 @@
 
 namespace sfrmat5 {
 
+template <typename T>
 struct Matrix {
     int rows = 0;
     int cols = 0;
-    std::vector<double> data;
+    std::vector<T> data;
 
     Matrix() = default;
-    Matrix(int r, int c, double value = 0.0);
+    Matrix(int r, int c, T value = static_cast<T>(0));
 
-    double &operator()(int r, int c);
-    double operator()(int r, int c) const;
+    T &operator()(int r, int c);
+    T operator()(int r, int c) const;
 };
 
+template <typename T>
 struct Image {
     int rows = 0;
     int cols = 0;
     int channels = 0;
-    std::vector<double> data;
+    std::vector<T> data;
 
     Image() = default;
-    Image(int r, int c, int ch, double value = 0.0);
+    Image(int r, int c, int ch, T value = static_cast<T>(0));
 
-    double &at(int r, int c, int ch);
-    double at(int r, int c, int ch) const;
+    T &at(int r, int c, int ch);
+    T at(int r, int c, int ch) const;
 };
 
+template <typename T>
 struct SfrResult {
     int status = 0;
-    Matrix dat;    // [freq, mtf...]
-    Matrix e;      // sampling efficiency (nval x ncol)
-    double sfr50 = 0.0;
-    Matrix fitme;  // polynomial coefficients (and misregistration if present)
-    std::vector<double> esf; // last computed ESF
+    Matrix<T> dat;    // [freq, mtf...]
+    Matrix<T> e;      // sampling efficiency (nval x ncol)
+    T sfr50 = static_cast<T>(0);
+    Matrix<T> fitme;  // polynomial coefficients (and misregistration if present)
+    std::vector<T> esf; // last computed ESF
     int nbin = 4;
-    double del2 = 0.0;
+    T del2 = static_cast<T>(0);
 };
 
-SfrResult compute_sfr(const Image &input,
-                      double del = 1.0,
-                      int npol = 5,
-                      int wflag = 0,
-                      const std::array<double, 3> &weight = {0.213, 0.715, 0.072});
+template <typename T>
+class SfrMat5 {
+public:
+    static SfrResult<T> compute_sfr(
+        const Image<T> &input,
+        T del = static_cast<T>(1),
+        int npol = 5,
+        int wflag = 0,
+        const std::array<T, 3> &weight = {static_cast<T>(0.213),
+                                          static_cast<T>(0.715),
+                                          static_cast<T>(0.072)});
+};
 
 }  // namespace sfrmat5
