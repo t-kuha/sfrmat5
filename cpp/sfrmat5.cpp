@@ -184,11 +184,8 @@ std::vector<double> cent(const std::vector<double> &a, double center) {
 Image<double> rotate90(const Image<double> &in) {
     Image<double> out(in.cols, in.rows, in.channels, 0.0);
     for (int ch = 0; ch < in.channels; ++ch) {
-        for (int r = 0; r < in.rows; ++r) {
-            for (int c = 0; c < in.cols; ++c) {
-                out.at(in.cols - 1 - c, r, ch) = in.at(r, c, ch);
-            }
-        }
+        // Rotate 90 degrees counterclockwise: transpose then flip vertically.
+        out.planes[ch] = in.planes[ch].transpose().colwise().reverse();
     }
     return out;
 }
@@ -212,24 +209,11 @@ RotateResult rotatev2(const Image<double> &input) {
     int col_left = std::max(0, nn - 1);
     int col_right = std::max(0, npix - nn - 1);
 
-    double mean_bot = 0.0;
-    double mean_top = 0.0;
-    double mean_right = 0.0;
-    double mean_left = 0.0;
-
-    for (int c = 0; c < npix; ++c) {
-        mean_bot += input.at(row_bot, c, mm);
-        mean_top += input.at(row_top, c, mm);
-    }
-    mean_bot /= static_cast<double>(npix);
-    mean_top /= static_cast<double>(npix);
-
-    for (int r = 0; r < nlin; ++r) {
-        mean_right += input.at(r, col_right, mm);
-        mean_left += input.at(r, col_left, mm);
-    }
-    mean_right /= static_cast<double>(nlin);
-    mean_left /= static_cast<double>(nlin);
+    const Matrix<double> &plane = input.planes[mm];
+    double mean_bot = plane.row(row_bot).mean();
+    double mean_top = plane.row(row_top).mean();
+    double mean_right = plane.col(col_right).mean();
+    double mean_left = plane.col(col_left).mean();
 
     double testv = std::abs(mean_bot - mean_top);
     double testh = std::abs(mean_right - mean_left);
@@ -243,62 +227,63 @@ RotateResult rotatev2(const Image<double> &input) {
     return result;
 }
 
-std::vector<double> ahamming(int n, double mid) {
-    std::vector<double> data(n, 0.0);
+Eigen::VectorXd ahamming(int n, double mid) {
+    Eigen::VectorXd data(n);
+    if (n == 0) {
+        return data;
+    }
     mid += 0.5;
     double wid1 = mid - 1.0;
     double wid2 = static_cast<double>(n) - mid;
     double wid = std::max(wid1, wid2);
-    for (int i = 0; i < n; ++i) {
-        double arg = (static_cast<double>(i) + 1.0) - mid;
-        data[i] = std::cos(M_PI * arg / wid);
-    }
-    for (double &v : data) {
-        v = 0.54 + 0.46 * v;
-    }
+    Eigen::VectorXd idx = Eigen::VectorXd::LinSpaced(n, 1.0, static_cast<double>(n));
+    Eigen::VectorXd arg = (idx.array() - mid) * (M_PI / wid);
+    Eigen::VectorXd win = arg.array().cos();
+    data = 0.54 + 0.46 * win.array();
     return data;
 }
 
-std::vector<double> tukey(int n, double alpha) {
+Eigen::VectorXd tukey(int n, double alpha) {
     if (n == 1) {
-        return {1.0};
+        Eigen::VectorXd w(1);
+        w(0) = 1.0;
+        return w;
     }
     if (alpha == 0.0) {
-        return std::vector<double>(n, 1.0);
+        return Eigen::VectorXd::Ones(n);
     }
     double m = (n - 1) / 2.0;
-    std::vector<double> w(n, 0.0);
-    for (int k = 0; k <= static_cast<int>(m); ++k) {
-        if (k <= alpha * m) {
-            w[k] = 0.5 * (1 + std::cos(M_PI * (k / (alpha * m) - 1)));
-        } else {
-            w[k] = 1.0;
+    int half = static_cast<int>(m);
+    Eigen::VectorXd k = Eigen::VectorXd::LinSpaced(half + 1, 0.0, static_cast<double>(half));
+    Eigen::ArrayXd wk = Eigen::ArrayXd::Ones(half + 1);
+    double thresh = alpha * m;
+    for (int i = 0; i <= half; ++i) {
+        if (k[i] <= thresh) {
+            wk[i] = 0.5 * (1 + std::cos(M_PI * (k[i] / (alpha * m) - 1)));
         }
-        w[n - 1 - k] = w[k];
     }
-    return w;
+    Eigen::VectorXd out = Eigen::VectorXd::Zero(n);
+    out.head(half + 1) = wk.matrix();
+    out.tail(half + 1) = wk.reverse().matrix();
+    return out;
 }
 
-std::vector<double> tukey2(int n, double alpha, double mid) {
+Eigen::VectorXd tukey2(int n, double alpha, double mid) {
     if (n < 3) {
-        return std::vector<double>(n, 1.0);
+        return Eigen::VectorXd::Ones(n);
     }
     double m1 = n / 2.0;
     double m2 = mid;
     double m3 = n - mid;
     double mm = std::max(m2, m3);
     int n2 = static_cast<int>(std::round(2 * mm));
-    std::vector<double> w = tukey(n2, alpha);
+    Eigen::VectorXd w = tukey(n2, alpha);
     if (mid >= m1) {
-        w.resize(n);
+        w.conservativeResize(n);
         return w;
     }
-    std::vector<double> out(n, 0.0);
     int start = static_cast<int>(w.size()) - n;
-    for (int i = 0; i < n; ++i) {
-        out[i] = w[start + i];
-    }
-    return out;
+    return w.segment(start, n);
 }
 
 std::vector<double> fir2fix(int n, int m) {
@@ -560,24 +545,19 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
     if (input.rows == 0 || input.cols == 0) {
         throw std::runtime_error("Empty input image");
     }
-    int nbin = 4;
-    double alpha = 1.0;
+    const int nbin = 4;
+    const double alpha = 1.0;
     npol = std::min(npol, 5);
 
     Image<double> a = input;
     if (a.channels == 3) {
         Image<double> out(a.rows, a.cols, 4, 0.0);
-        for (int r = 0; r < a.rows; ++r) {
-            for (int c = 0; c < a.cols; ++c) {
-                double lum = weight[0] * a.at(r, c, 0) +
-                             weight[1] * a.at(r, c, 1) +
-                             weight[2] * a.at(r, c, 2);
-                out.at(r, c, 0) = a.at(r, c, 0);
-                out.at(r, c, 1) = a.at(r, c, 1);
-                out.at(r, c, 2) = a.at(r, c, 2);
-                out.at(r, c, 3) = lum;
-            }
-        }
+        out.planes[0] = a.planes[0];
+        out.planes[1] = a.planes[1];
+        out.planes[2] = a.planes[2];
+        out.planes[3] = weight[0] * a.planes[0]
+                        + weight[1] * a.planes[1]
+                        + weight[2] * a.planes[2];
         a = out;
     }
 
@@ -593,16 +573,9 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
 
     int left_cols = std::min(5, npix);
     int right_cols = std::min(6, npix);
-    double tleft = 0.0;
-    double tright = 0.0;
-    for (int r = 0; r < nlin; ++r) {
-        for (int c = 0; c < left_cols; ++c) {
-            tleft += a.at(r, c, 0);
-        }
-        for (int c = npix - right_cols; c < npix; ++c) {
-            tright += a.at(r, c, 0);
-        }
-    }
+    const Matrix<double> &plane0 = a.planes[0];
+    double tleft = plane0.leftCols(left_cols).sum();
+    double tright = plane0.rightCols(right_cols).sum();
 
     std::vector<double> fil1 = {0.5, -0.5};
     std::vector<double> fil2 = {0.5, 0.0, -0.5};
@@ -611,14 +584,12 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
         fil2 = {-0.5, 0.0, 0.5};
     }
 
-    std::vector<double> win1;
+    Eigen::VectorXd win1;
     if (wflag != 0) {
         win1 = ahamming(npix, (npix + 1) / 2.0);
     } else {
         win1 = tukey2(npix, alpha, (npix + 1) / 2.0);
-        for (double &v : win1) {
-            v = 0.95 * v + 0.05;
-        }
+        win1 = win1.array() * 0.95 + 0.05;
     }
 
     std::vector<std::vector<double>> loc(ncol, std::vector<double>(nlin, 0.0));
@@ -626,15 +597,9 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
     std::vector<std::vector<double>> fitme1(ncol);
 
     for (int color = 0; color < ncol; ++color) {
-        Matrix<double> plane(nlin, npix);
-        plane.setZero();
-        for (int r = 0; r < nlin; ++r) {
-            for (int c = 0; c < npix; ++c) {
-                plane(r, c) = a.at(r, c, color);
-            }
-        }
+        Matrix<double> plane = a.planes[color];
         Matrix<double> deriv = deriv1(plane, fil1);
-        Eigen::Map<const Eigen::VectorXd> w1(win1.data(), npix);
+        const Eigen::VectorXd &w1 = win1;
         for (int n = 0; n < nlin; ++n) {
             std::vector<double> row(npix, 0.0);
             Eigen::Map<const Eigen::VectorXd> drow(deriv.row(n).data(), npix);
@@ -645,17 +610,14 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
 
         for (int n = 0; n < nlin; ++n) {
             double place = polyval(fitme[color], static_cast<double>(n));
-            std::vector<double> win2 = (wflag != 0) ? ahamming(npix, place)
-                                                    : tukey2(npix, alpha, place);
+            Eigen::VectorXd win2 = (wflag != 0) ? ahamming(npix, place)
+                                                : tukey2(npix, alpha, place);
             if (wflag == 0) {
-                for (double &v : win2) {
-                    v = 0.95 * v + 0.05;
-                }
+                win2 = win2.array() * 0.95 + 0.05;
             }
             std::vector<double> row(npix, 0.0);
             Eigen::Map<const Eigen::VectorXd> drow(deriv.row(n).data(), npix);
-            Eigen::Map<const Eigen::VectorXd> w2(win2.data(), npix);
-            Eigen::VectorXd::Map(&row[0], npix) = (drow.array() * w2.array()).matrix();
+            Eigen::VectorXd::Map(&row[0], npix) = (drow.array() * win2.array()).matrix();
             loc[color][n] = centroid(row) - 0.5;
         }
 
@@ -694,12 +656,8 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
     nlin1 = std::max(1, std::min(nlin1, nlin));
     if (nlin1 < nlin) {
         Image<double> cropped(nlin1, npix, ncol, 0.0);
-        for (int r = 0; r < nlin1; ++r) {
-            for (int c = 0; c < npix; ++c) {
-                for (int ch = 0; ch < ncol; ++ch) {
-                    cropped.at(r, c, ch) = a.at(r, c, ch);
-                }
-            }
+        for (int ch = 0; ch < ncol; ++ch) {
+            cropped.planes[ch] = a.planes[ch].topRows(nlin1);
         }
         a = cropped;
         nlin = a.rows;
@@ -727,13 +685,7 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
     std::vector<double> esf_last;
 
     for (int color = 0; color < ncol; ++color) {
-        Matrix<double> plane(nlin, npix);
-        plane.setZero();
-        for (int r = 0; r < nlin; ++r) {
-            for (int c = 0; c < npix; ++c) {
-                plane(r, c) = a.at(r, c, color);
-            }
-        }
+        Matrix<double> plane = a.planes[color];
         ProjectResult proj = project2(plane, fitme[color], nbin);
         esf_last = proj.point;
         Matrix<double> esf_mat(1, static_cast<int>(esf_last.size()));
@@ -768,10 +720,9 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
         }
         c = cent(c, mm);
         double center = nn / 2.0;
-        std::vector<double> win = (wflag != 0) ? ahamming(nn, center) : tukey2(nn, alpha, center);
+        Eigen::VectorXd win = (wflag != 0) ? ahamming(nn, center) : tukey2(nn, alpha, center);
         Eigen::Map<Eigen::VectorXd> cv(c.data(), nn);
-        Eigen::Map<const Eigen::VectorXd> wv(win.data(), nn);
-        cv.array() *= wv.array();
+        cv.array() *= win.array();
 
         std::vector<std::complex<double>> cx(nn);
         for (int i = 0; i < nn; ++i) {
@@ -787,17 +738,12 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
     }
 
     std::vector<double> freq(nn, 0.0);
-    for (int n = 0; n < nn; ++n) {
-        freq[n] = static_cast<double>(n) / (del2 * nn);
-    }
+    Eigen::Map<Eigen::VectorXd> freqv(freq.data(), nn);
+    freqv = Eigen::VectorXd::LinSpaced(nn, 0.0, static_cast<double>(nn - 1)) / (del2 * nn);
     Matrix<double> dat(nn2out, ncol + 1);
-    dat.setZero();
-    for (int i = 0; i < nn2out; ++i) {
-        dat(i, 0) = freq[i];
-        for (int c = 0; c < ncol; ++c) {
-            dat(i, c + 1) = mtf(i, c);
-        }
-    }
+    Eigen::Map<const Eigen::VectorXd> freqv2(freq.data(), nn);
+    dat.col(0) = freqv2.head(nn2out);
+    dat.block(0, 1, nn2out, ncol) = mtf.topRows(nn2out);
 
     int fit_cols = static_cast<int>(fitme[0].size());
     Matrix<double> fitout(ncol, (ncol > 2) ? fit_cols + 1 : fit_cols);
