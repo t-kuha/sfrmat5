@@ -3,7 +3,7 @@ function pos = centerfig(width,height,scale)
 %  Author: Peter Burns, 19 Feb. 2007
 %  Copyright (c) 2007 Peter D. Burns
 
-if nargin < 3;
+if nargin < 3
     scale = 0.65;
 end
 
@@ -17,7 +17,7 @@ fw = width/maxw;
 fh = height/maxh;
 
 %if max(fw,fh) > 1;
-if fw > fh;
+if fw > fh
     width = maxw;
     height = width/rat;
 else

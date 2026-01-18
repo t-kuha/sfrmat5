@@ -28,7 +28,6 @@ LgthFileMainHeader = 3476;
 LgthImHeader = 1016;
 % Recover the number of pixels in images:
 fseek(fid, 23, 'bof');
-NbPixelImage = fread(fid,1,'uint32');
 % Recover the total number of images:
 fseek(fid, 27, 'bof');
 Nbimage = fread(fid,1,'uint32');

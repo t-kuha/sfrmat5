@@ -11,27 +11,26 @@ function [freqval, sfrval] = findfreq(dat, val , imax, fflag)
 %
 %Peter Burns 6 Dec. 2005
 
-if nargin < 4;
+if nargin < 4
     fflag = 0;
 end
 
-[n, m, nc] = size(dat);
+[~, m, ~] = size(dat);
 nc = m - 1;
-frequval = zeros(1, nc);
 sfrval = zeros(1, nc);
 
 maxf = dat(imax,1);
 fil = [1, 1, 1]/3;
 fil = fil';
-for c = 1:nc;
-    if fflag ~= 0;
+for c = 1:nc
+    if fflag ~= 0
         temp = conv2(dat(:, c+1), fil, 'same');
         dat(2:end-1, c+1) = temp(2:end-1);
     end
     test = dat(:, c+1) - val;
     x = find(test < 0) - 1; % First crossing of threshold
 
-    if isempty(x) == 1 | x(1) == 0;
+    if isempty(x) == 1 | x(1) == 0
 
         s = maxf;
         sval = dat(imax, c+1);
@@ -47,7 +46,7 @@ for c = 1:nc;
         s = s - dely/slope;
         sval = sval - dely;
     end
-    if s > maxf;
+    if s > maxf
         s = maxf;
         sval = dat(imax, c+1);
     end

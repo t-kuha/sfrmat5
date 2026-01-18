@@ -26,7 +26,7 @@ if nargin < 2
     npol = 1;
 end
 
-if del > 1;
+if del > 1
     def={num2str(del), '-', num2str(npol)};
 else
     def={'-', num2str(del), num2str(npol)};
@@ -42,7 +42,7 @@ AddOpts.Interpreter='tex';
 answer=inputdlg(prompt, title, lineNo, def, AddOpts);
 
 % Catch for CANCEL button
-if isempty(answer) == 1;
+if isempty(answer) == 1
     %  del = 1;
     %  npol = 1;
     return
@@ -50,17 +50,17 @@ end
 
 
 sflag = 0;
-if length(char(answer(1)))~=1;
+if length(char(answer(1)))~=1
     sflag = 1;
-elseif char(answer(1))~='-';
+elseif char(answer(1))~='-'
     sflag = 1;
-end;
+end
 if sflag==0
     del =  str2num(char(answer(2)));
-else;
+else
     del =  str2num(char(answer(1)));
     del = 25.4/del;
-end;
+end
 
 npol = str2num(char(answer(3)))';   %%
 del = abs(del);

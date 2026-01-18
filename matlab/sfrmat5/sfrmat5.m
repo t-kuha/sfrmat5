@@ -77,7 +77,7 @@ pflag = 0; % Used for diagnostic plotting
 home = pwd;
 name =    'sfrmat5';
 version = '1';
-when =    '28 Feb. 2023';
+% when =    '28 Feb. 2023';
 
 % Default settings
 guidefweight = [0.213   0.715   0.072]';
@@ -209,7 +209,7 @@ end
 alpha = clip(alpha, minalpha, maxalpha);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if io ~= 1
-    swin = splash(name, version, when);
+    swin = splash(name, version);
     drawnow;
     [status, atemp, ~, pathname, f] = imageread;
     close(swin); drawnow;

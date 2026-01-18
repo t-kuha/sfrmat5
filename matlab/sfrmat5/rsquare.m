@@ -48,10 +48,14 @@ function [r2, rmse, merror] = rsquare(y,f,varargin)
 % to improve this code. His code POLYFITN was consulted in the inclusion of
 % the C-option (REF. File ID: #34765).
 
-if isempty(varargin); c = true;
-elseif length(varargin)>1; error 'Too many input arguments';
-elseif ~islogical(varargin{1}); error 'C must be logical (TRUE||FALSE)'
-else c = varargin{1};
+if isempty(varargin)
+    c = true;
+elseif length(varargin)>1
+    error 'Too many input arguments';
+elseif ~islogical(varargin{1})
+    error 'C must be logical (TRUE||FALSE)'
+else 
+    c = varargin{1};
 end
 
 % Compare inputs
@@ -62,8 +66,10 @@ tmp = ~or(isnan(y),isnan(f));
 y = y(tmp);
 f = f(tmp);
 
-if c; r2 = max(0,1 - sum((y(:)-f(:)).^2)/sum((y(:)-mean(y(:))).^2));
-else r2 = 1 - sum((y(:)-f(:)).^2)/sum((y(:)).^2);
+if c
+    r2 = max(0,1 - sum((y(:)-f(:)).^2)/sum((y(:)-mean(y(:))).^2));
+else
+    r2 = 1 - sum((y(:)-f(:)).^2)/sum((y(:)).^2);
     if r2<0
         % http://web.maths.unsw.edu.au/~adelle/Garvan/Assays/GoodnessOfFit.html
         warning('Consider adding a constant term to your model') %#ok<WNTAG>

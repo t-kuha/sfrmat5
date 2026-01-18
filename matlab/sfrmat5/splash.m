@@ -1,4 +1,4 @@
-function [h0] = splash(name, version, when, posi);
+function [h0] = splash(name, version, posi)
 % isplash  displays simple splash window announcing program name,
 %         version  and copyright information.
 % Usage:
@@ -14,40 +14,22 @@ function [h0] = splash(name, version, when, posi);
 % email:   pdbirns@ieee.org
 % date:    5 Aug. 2002
 
-if nargin<4;
+if nargin<3
     screen = get(0, 'ScreenSize');
     posi(1) = (screen(3)/2)-175;
     posi(2) = 0.075*screen(4);
     posi(3) = 395;
     posi(4) = 65;
-end;
+end
 
-if nargin<3;
-    when= datestr(now,1);
-end;
-
-if nargin<2;
+if nargin<2
     version = '4.0';
-end;
+end
 
-if nargin<1;
+if nargin<1
     name = 'sfrmat';
     %message = ' ';
-end;
-
-com = char(computer);
-if com(1:3) == 'PCW';
-    com = 'MS-Windows';
-elseif com(1:3) == 'MAC';
-    com = 'Macintosh';
-elseif com(1:3) == 'SUN';
-    com = 'Sun SPARC';
-elseif com(1:3) == 'SOL';
-    com = 'Solaris 2';
-elseif com(1:3) == 'SGI';
-    com = 'Silicon Graphics';
-end;
-
+end
 
 bkcolor = [.25 .25 .25];
 txtcolor = [1 1 1];
@@ -64,7 +46,7 @@ h0 = figure('Units','pixels',...
     'Tag','new_figure'...
     );
 
-h1 = uicontrol('Style','text',...
+uicontrol('Style','text',...
     'Tag',' ',...
     'Units','normalized',...
     'Position',[ 0.18  0.6  0.6  0.25],...
@@ -76,7 +58,7 @@ h1 = uicontrol('Style','text',...
     'Parent',h0...
     );
 
-h1 = uicontrol('Style','text',...
+uicontrol('Style','text',...
     'Tag', myname,...
     'Units','normalized',...
     'Position',[ 0.06  0.20  0.85  0.25],...

@@ -35,15 +35,12 @@ pdatfile = datfile;
 
 disp(['* Writing results to file: ',filename])
 
-[rows, cols] = size(dat);
+[~, cols] = size(dat);
 
-
-edgelab = sinfo.edgelab;
 edgedat = sinfo.edgedat;
 misreg = edgedat(:,end)';
 samp = sinfo.samp;
 nbin = samp(4);
-fitme = sinfo.fitme;
 se = sinfo.se;
 sfr1050 = sinfo.sfr1050;
 npol = sinfo.npol;

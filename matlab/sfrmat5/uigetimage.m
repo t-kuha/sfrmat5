@@ -52,7 +52,6 @@ end
 % Folder specified
 if nargin==2 && isempty(def)~=1
     hom = pwd;
-    def = fileparts(def);
     %     cd(def); % jump
     fflag = 1;
 end

@@ -25,5 +25,6 @@ elseif del < 1
         b(i) = a(i + del);
     end
 
-else b = a;
+else
+    b = a;
 end

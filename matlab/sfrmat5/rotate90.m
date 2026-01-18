@@ -15,7 +15,7 @@ function out = rotate90(in, n)
 % Author: Peter Burns
 % Copyright (c) 2015 Peter D. Burns
 
-if nargin < 2;
+if nargin < 2
     n = 1;
 end
 
@@ -36,13 +36,12 @@ return
 function [out] = r90(in)
 
 [nlin, npix, nc] = size(in);
-temp = zeros (npix, nlin);
 temp = 0*in(:,:,1);
 cl = class(temp);
 arg1=['out = ',cl,'(zeros(npix, nlin, nc));'];
 eval(arg1);
 
-for c = 1: nc;
+for c = 1: nc
 
     temp =  in(:,:,c);
     temp = temp.';

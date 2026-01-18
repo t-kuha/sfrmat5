@@ -17,7 +17,7 @@ end
 if nargin <2
     alpha = 1;
 end
-if n<3;
+if n<3
     w = ones(n,1);
     return
 end

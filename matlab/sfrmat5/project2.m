@@ -56,7 +56,6 @@ end
 for n=1:npix
     for m=1:nlin
         x = n-1;
-        y = m-1;
         ling =   ceil( (x - p2(m))*fac ) + 1 - offset;
         if ling<1
             ling = 1;

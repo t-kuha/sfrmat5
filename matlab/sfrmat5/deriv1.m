@@ -11,7 +11,6 @@ function  [b] = deriv1(a, nlin, npix, fil)
 %  Copyright (c) 2020 Peter D. Burns
 %
 b = zeros(nlin, npix);
-nn = length(fil);
 
 for ii=1:nlin
     %       size(conv(a(ii,:),fil,'same'))

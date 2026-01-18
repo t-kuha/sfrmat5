@@ -68,19 +68,19 @@ if length(char(answer(1)))~=1
     sflag = 1;
 elseif char(answer(1))~='-'
     sflag = 1;
-end;
+end
 if sflag==0
     del =  str2num(char(answer(2)));
-else;
+else
     del =  str2num(char(answer(1)));
     del = 25.4/del;
-end;
+end
 
 weights = str2num(char(answer(3)))';   %%
 
-if sum(weights) > 1.0;
+if sum(weights) > 1.0
     beep
     disp(' ***  WARNING: Sum of Luminance weights is greater than 1  ***');
-end;
+end
 del = abs(del);
 npol = str2num(char(answer(4)))';   %%

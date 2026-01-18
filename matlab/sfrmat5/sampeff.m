@@ -12,14 +12,14 @@ function [eff, freqval, sfrval] = sampeff(dat, val, del, fflag, pflag)
 %
 %Peter Burns 6 Dec. 2005, modified 19 April 2009
 %
-if nargin < 4;
+if nargin < 4
     pflag = 0;
     fflag =0;
 end
-if nargin < 3;
+if nargin < 3
     del = 1;
 end
-if nargin < 2;
+if nargin < 2
     val = 0.1;
 end
 
@@ -28,7 +28,7 @@ end
 hs = 0.495/del;
 imax= length(dat(:,1)); % added 19 April 2009
 x = find(dat(:,1) > hs);
-if isempty(x) == 1;
+if isempty(x) == 1
     disp(' Missing SFR data, frequency up to half-sampling needed')
     eff = 0;  %%%%%
     freqval = 0;
@@ -39,7 +39,7 @@ nindex = x(1);  % added 19 April 2009
 %imax = x(1);   % Changed 19 April 2009
 dat = dat(1: imax, :);
 
-[n, m, nc] = size(dat);
+[n, m, ~] = size(dat);
 nc = m - 1;
 imax = n;
 nval = length(val);
@@ -47,7 +47,7 @@ eff = zeros(nval, nc);
 freqval = zeros(nval, nc);
 sfrval = zeros(nval, nc);
 
-for v = 1: nval;
+for v = 1: nval
     [freqval(v, :), sfrval(v, :)] = findfreq(dat, val(v), imax, fflag);
     freqval(v, :)=clip(freqval(v, :),0, hs); %added 19 April 2009 ****************
     for c = 1:nc
@@ -56,7 +56,7 @@ for v = 1: nval;
     end
 end
 
-if pflag ~= 0;
+if pflag ~= 0
 
     for c =1:nc
         se = ['Sampling efficiency ',num2str(eff(1,c)),'%'];

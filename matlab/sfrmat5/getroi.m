@@ -18,8 +18,7 @@ function [select, coord] = getroi(array1, dialtext, tol)
 % Author: Peter Burns, pdburns@ieee.org
 % 30 June 2021 updated to handle greater than 3 color records
 %******************************************************************
-aflag = 0;
-[nn,mm,nc] = size(array1);
+[nn,mm,~] = size(array1);
 fac = round((nn+mm)/1600);
 fac = max(fac,1);
 array = array1(1:fac:end, 1:fac:end, :);
@@ -32,7 +31,8 @@ if nargin == 2
     if strcmp(test(1:3), 'cha')==1
         dialtext = [dialtext];
         tol = 10;
-    else tol = dialtext;
+    else 
+        tol = dialtext;
         dialtext = 'Select ROI';
     end
 end  % nargin == 2
@@ -60,7 +60,6 @@ else
     ncol = dim(3);
 end
 if ncol>3
-    arraytemp = array;
     array = array(:,:,1:3);
 end
 screen = 0.95*(get(0, 'ScreenSize'));
@@ -68,7 +67,8 @@ screen = 0.95*(get(0, 'ScreenSize'));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ms = get(0,'ScreenSize');
 pos = centerfig(0.6*ms(3)+0.05*ms(3),0.7*ms(4));
-fig=figure; set(gcf,'Position', pos,'Menu','none','Name',' Region selection',...
+fig=figure;
+set(gcf,'Position', pos,'Menu','none','Name',' Region selection',...
     'NumberTitle','off');
 title(dialtext)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -95,10 +95,9 @@ end
 
 %axis off,
 
-junk=waitforbuttonpress;
+waitforbuttonpress;
 ul=get(gca,'CurrentPoint');
 
-final_rect=rbbox;
 lr=get(gca,'CurrentPoint');
 ul=round(ul(1,1:2));
 lr=round(lr(1,1:2));

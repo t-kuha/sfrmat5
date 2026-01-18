@@ -1,6 +1,6 @@
 function [h]=imagesc1(dat,h)
 
-[nlin,noix,nc]=size(dat);
+[~,~,nc]=size(dat);
 if nargin<2
     h=imagesc(dat); axis image
 else
