@@ -28,7 +28,6 @@ end
 
 if nargin<1
     name = 'sfrmat';
-    %message = ' ';
 end
 
 bkcolor = [.25 .25 .25];

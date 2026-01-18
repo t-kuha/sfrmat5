@@ -50,7 +50,7 @@ for v = 1: nval
     [freqval(v, :), sfrval(v, :)] = findfreq(dat, val(v), imax, fflag);
     freqval(v, :)=clip(freqval(v, :),0, hs); %added 19 April 2009 ****************
     for c = 1:nc
-        eff(v, c) = min(round(100*freqval(v, c)/hs), 100); %  ************************
+        eff(v, c) = min(round(100*freqval(v, c)/hs), 100);
     end
 end
 

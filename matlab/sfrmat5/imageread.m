@@ -61,7 +61,6 @@ if strcmp(ftype,'dcm')==1 || strcmp(ftype,'DCM')==1
 elseif strcmp(ftype,'rvg')==1 || strcmp(ftype,'RVG')==1 || ...
         strcmp(ftype,'stv')==1 || strcmp(ftype,'STV')==1
     ver = version;
-    %   vernum = str2num(ver(1:3));
     vernum = str2double(ver(1:3));
     if vernum < 7.1
         disp(' **  Unfortunately, you will need Matlab 7.1  **')

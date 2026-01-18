@@ -18,7 +18,7 @@ end
 index=0:nlin-1;
 % Adding output variable mu makes the fit in centered and scaled x values
 % this improves the fitting, 16 July 2019
-[p, s, mu] = polyfit(index, cent, nn); % x = f(y)
+[p, s, mu] = polyfit(index, cent, nn);
 % Next we 'unscale' the polynomial coefficients so we can use them easily
 % later directly in sfrmat4
 p = polyfit_convert(p, index);
