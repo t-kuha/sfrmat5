@@ -131,7 +131,6 @@ std::vector<double> conv_same(const std::vector<double> &x, const std::vector<do
 
 Matrix<double> deriv1(const Matrix<double> &a, const std::vector<double> &fil) {
     Matrix<double> b(a.rows(), a.cols());
-    b.setZero();
     for (int r = 0; r < a.rows(); ++r) {
         std::vector<double> row(a.cols());
         Eigen::Map<const Eigen::VectorXd> row_vec(a.row(r).data(), a.cols());
@@ -790,7 +789,6 @@ Image<double> to_double_image(const Image<T> &input) {
 template <typename T>
 Matrix<T> cast_matrix(const Matrix<double> &input) {
     Matrix<T> out(input.rows(), input.cols());
-    out.setZero();
     for (int r = 0; r < input.rows(); ++r) {
         for (int c = 0; c < input.cols(); ++c) {
             out(r, c) = static_cast<T>(input(r, c));
