@@ -12,33 +12,6 @@
 
 namespace sfrmat5 {
 
-template <typename T>
-Matrix<T>::Matrix(int r, int c, T value) : rows(r), cols(c), data(r * c, value) {}
-
-template <typename T>
-T &Matrix<T>::operator()(int r, int c) {
-    return data[r * cols + c];
-}
-
-template <typename T>
-T Matrix<T>::operator()(int r, int c) const {
-    return data[r * cols + c];
-}
-
-template <typename T>
-Image<T>::Image(int r, int c, int ch, T value)
-    : rows(r), cols(c), channels(ch), data(r * c * ch, value) {}
-
-template <typename T>
-T &Image<T>::at(int r, int c, int ch) {
-    return data[(ch * rows + r) * cols + c];
-}
-
-template <typename T>
-T Image<T>::at(int r, int c, int ch) const {
-    return data[(ch * rows + r) * cols + c];
-}
-
 namespace {
 
 double clip_value(double in, double low, double high) {
@@ -97,43 +70,6 @@ std::vector<double> polyfit_convert(const std::vector<double> &p2, const std::ve
     return retval;
 }
 
-std::vector<double> solve_linear(std::vector<std::vector<double>> a, std::vector<double> b) {
-    int n = static_cast<int>(b.size());
-    for (int i = 0; i < n; ++i) {
-        int pivot = i;
-        double max_val = std::abs(a[i][i]);
-        for (int r = i + 1; r < n; ++r) {
-            if (std::abs(a[r][i]) > max_val) {
-                max_val = std::abs(a[r][i]);
-                pivot = r;
-            }
-        }
-        if (max_val == 0.0) {
-            throw std::runtime_error("Singular matrix in polyfit");
-        }
-        if (pivot != i) {
-            std::swap(a[pivot], a[i]);
-            std::swap(b[pivot], b[i]);
-        }
-        double diag = a[i][i];
-        for (int c = i; c < n; ++c) {
-            a[i][c] /= diag;
-        }
-        b[i] /= diag;
-        for (int r = 0; r < n; ++r) {
-            if (r == i) {
-                continue;
-            }
-            double factor = a[r][i];
-            for (int c = i; c < n; ++c) {
-                a[r][c] -= factor * a[i][c];
-            }
-            b[r] -= factor * b[i];
-        }
-    }
-    return b;
-}
-
 std::vector<double> polyfit_scaled(const std::vector<double> &x,
                                    const std::vector<double> &y,
                                    int degree) {
@@ -148,25 +84,24 @@ std::vector<double> polyfit_scaled(const std::vector<double> &x,
         sx = 1.0;
     }
 
-    std::vector<std::vector<double>> ata(m, std::vector<double>(m, 0.0));
-    std::vector<double> aty(m, 0.0);
-
+    Eigen::MatrixXd A(n, m);
+    Eigen::VectorXd b(n);
     for (int i = 0; i < n; ++i) {
         double z = (x[i] - mx) / sx;
-        std::vector<double> v(m, 1.0);
-        for (int p = 1; p < m; ++p) {
-            v[p] = v[p - 1] * z;
+        double value = 1.0;
+        for (int p = m - 1; p >= 0; --p) {
+            A(i, p) = value;
+            value *= z;
         }
-        for (int row = 0; row < m; ++row) {
-            for (int col = 0; col < m; ++col) {
-                ata[row][col] += v[m - 1 - row] * v[m - 1 - col];
-            }
-            aty[row] += v[m - 1 - row] * y[i];
-        }
+        b(i) = y[i];
     }
 
-    std::vector<double> p2 = solve_linear(ata, aty);
-    return polyfit_convert(p2, x);
+    Eigen::VectorXd p2 = A.colPivHouseholderQr().solve(b);
+    std::vector<double> coeffs(p2.size(), 0.0);
+    for (int i = 0; i < p2.size(); ++i) {
+        coeffs[i] = p2(i);
+    }
+    return polyfit_convert(coeffs, x);
 }
 
 double polyval(const std::vector<double> &p, double x) {
@@ -195,19 +130,20 @@ std::vector<double> conv_same(const std::vector<double> &x, const std::vector<do
 }
 
 Matrix<double> deriv1(const Matrix<double> &a, const std::vector<double> &fil) {
-    Matrix<double> b(a.rows, a.cols, 0.0);
-    for (int r = 0; r < a.rows; ++r) {
-        std::vector<double> row(a.cols);
-        for (int c = 0; c < a.cols; ++c) {
+    Matrix<double> b(a.rows(), a.cols());
+    b.setZero();
+    for (int r = 0; r < a.rows(); ++r) {
+        std::vector<double> row(a.cols());
+        for (int c = 0; c < a.cols(); ++c) {
             row[c] = a(r, c);
         }
         std::vector<double> temp = conv_same(row, fil);
-        for (int c = 0; c < a.cols; ++c) {
+        for (int c = 0; c < a.cols(); ++c) {
             b(r, c) = temp[c];
         }
-        if (a.cols > 1) {
+        if (a.cols() > 1) {
             b(r, 0) = b(r, 1);
-            b(r, a.cols - 1) = b(r, a.cols - 2);
+            b(r, a.cols() - 1) = b(r, a.cols() - 2);
         }
     }
     return b;
@@ -396,8 +332,8 @@ struct ProjectResult {
 };
 
 ProjectResult project2(const Matrix<double> &bb, const std::vector<double> &fitme, int fac) {
-    int nlin = bb.rows;
-    int npix = bb.cols;
+    int nlin = bb.rows();
+    int npix = bb.cols();
     if (fac <= 0) {
         fac = 4;
     }
@@ -498,20 +434,20 @@ std::vector<std::complex<double>> fft(const std::vector<std::complex<double>> &x
 }
 
 std::vector<double> findfreq(const Matrix<double> &dat, double val, int imax, int fflag) {
-    int nc = dat.cols - 1;
+    int nc = dat.cols() - 1;
     std::vector<double> freqval(nc, 0.0);
     std::vector<double> sfrval(nc, 0.0);
     double maxf = dat(imax - 1, 0);
     std::vector<double> fil = {1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0};
 
     for (int c = 0; c < nc; ++c) {
-        std::vector<double> col(dat.rows, 0.0);
-        for (int r = 0; r < dat.rows; ++r) {
+        std::vector<double> col(dat.rows(), 0.0);
+        for (int r = 0; r < dat.rows(); ++r) {
             col[r] = dat(r, c + 1);
         }
         if (fflag != 0) {
             std::vector<double> temp = conv_same(col, fil);
-            for (int r = 1; r < dat.rows - 1; ++r) {
+            for (int r = 1; r < dat.rows() - 1; ++r) {
                 col[r] = temp[r];
             }
         }
@@ -533,7 +469,7 @@ std::vector<double> findfreq(const Matrix<double> &dat, double val, int imax, in
             s = dat(x, 0);
             double y = col[x];
             double y2 = col[x + 1];
-            double denom = (dat.rows > 1) ? dat(1, 0) : 0.0;
+            double denom = (dat.rows() > 1) ? dat(1, 0) : 0.0;
             double slope = (denom == 0.0) ? 0.0 : (y2 - y) / denom;
             double dely = col[x] - val;
             if (slope != 0.0) {
@@ -557,24 +493,27 @@ std::vector<double> findfreq(const Matrix<double> &dat, double val, int imax, in
 }
 
 Matrix<double> sampeff(const Matrix<double> &dat, const std::vector<double> &val, double del, int fflag) {
-    if (dat.rows == 0 || dat.cols < 2) {
+    if (dat.rows() == 0 || dat.cols() < 2) {
         return Matrix<double>();
     }
     double hs = 0.495 / del;
-    int imax = dat.rows;
+    int imax = dat.rows();
     int nindex = -1;
-    for (int i = 0; i < dat.rows; ++i) {
+    for (int i = 0; i < dat.rows(); ++i) {
         if (dat(i, 0) > hs) {
             nindex = i;
             break;
         }
     }
     if (nindex < 0) {
-        return Matrix<double>(static_cast<int>(val.size()), dat.cols - 1, 0.0);
+        Matrix<double> empty(static_cast<int>(val.size()), dat.cols() - 1);
+        empty.setZero();
+        return empty;
     }
 
-    int nc = dat.cols - 1;
-    Matrix<double> eff(static_cast<int>(val.size()), nc, 0.0);
+    int nc = dat.cols() - 1;
+    Matrix<double> eff(static_cast<int>(val.size()), nc);
+    eff.setZero();
     for (size_t v = 0; v < val.size(); ++v) {
         std::vector<double> freq_sfr = findfreq(dat, val[v], imax, fflag);
         for (int c = 0; c < nc; ++c) {
@@ -686,7 +625,8 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
     std::vector<std::vector<double>> fitme1(ncol);
 
     for (int color = 0; color < ncol; ++color) {
-        Matrix<double> plane(nlin, npix, 0.0);
+        Matrix<double> plane(nlin, npix);
+        plane.setZero();
         for (int r = 0; r < nlin; ++r) {
             for (int c = 0; c < npix; ++c) {
                 plane(r, c) = a.at(r, c, color);
@@ -781,11 +721,13 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
     int freqlim = (nbin == 1) ? 2 : 1;
     int nn2out = static_cast<int>(std::round(nn2 * freqlim / 2.0));
 
-    Matrix<double> mtf(nn, ncol, 0.0);
+    Matrix<double> mtf(nn, ncol);
+    mtf.setZero();
     std::vector<double> esf_last;
 
     for (int color = 0; color < ncol; ++color) {
-        Matrix<double> plane(nlin, npix, 0.0);
+        Matrix<double> plane(nlin, npix);
+        plane.setZero();
         for (int r = 0; r < nlin; ++r) {
             for (int c = 0; c < npix; ++c) {
                 plane(r, c) = a.at(r, c, color);
@@ -793,7 +735,8 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
         }
         ProjectResult proj = project2(plane, fitme[color], nbin);
         esf_last = proj.point;
-        Matrix<double> esf_mat(1, static_cast<int>(esf_last.size()), 0.0);
+        Matrix<double> esf_mat(1, static_cast<int>(esf_last.size()));
+        esf_mat.setZero();
         for (int i = 0; i < static_cast<int>(esf_last.size()); ++i) {
             esf_mat(0, i) = esf_last[i];
         }
@@ -846,7 +789,8 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
     for (int n = 0; n < nn; ++n) {
         freq[n] = static_cast<double>(n) / (del2 * nn);
     }
-    Matrix<double> dat(nn2out, ncol + 1, 0.0);
+    Matrix<double> dat(nn2out, ncol + 1);
+    dat.setZero();
     for (int i = 0; i < nn2out; ++i) {
         dat(i, 0) = freq[i];
         for (int c = 0; c < ncol; ++c) {
@@ -855,7 +799,8 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
     }
 
     int fit_cols = static_cast<int>(fitme[0].size());
-    Matrix<double> fitout(ncol, (ncol > 2) ? fit_cols + 1 : fit_cols, 0.0);
+    Matrix<double> fitout(ncol, (ncol > 2) ? fit_cols + 1 : fit_cols);
+    fitout.setZero();
     for (int r = 0; r < ncol; ++r) {
         for (int c = 0; c < fit_cols; ++c) {
             fitout(r, c) = fitme[r][c];
@@ -867,7 +812,7 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
 
     std::vector<double> val = {0.1, 0.5};
     Matrix<double> eff = sampeff(dat, val, delimage, 0);
-    std::vector<double> freq_sfr = findfreq(dat, 0.5, dat.rows, 0);
+    std::vector<double> freq_sfr = findfreq(dat, 0.5, dat.rows(), 0);
     double sfr50 = freq_sfr.empty() ? 0.0 : freq_sfr[0];
 
     SfrResult<double> result;
@@ -897,9 +842,10 @@ Image<double> to_double_image(const Image<T> &input) {
 
 template <typename T>
 Matrix<T> cast_matrix(const Matrix<double> &input) {
-    Matrix<T> out(input.rows, input.cols, static_cast<T>(0));
-    for (int r = 0; r < input.rows; ++r) {
-        for (int c = 0; c < input.cols; ++c) {
+    Matrix<T> out(input.rows(), input.cols());
+    out.setZero();
+    for (int r = 0; r < input.rows(); ++r) {
+        for (int c = 0; c < input.cols(); ++c) {
             out(r, c) = static_cast<T>(input(r, c));
         }
     }
@@ -994,9 +940,6 @@ SfrResult<T> SfrMat5<T>::compute(const Image<T> &input) const {
 
 template class SfrMat5<float>;
 template class SfrMat5<double>;
-
-template struct Matrix<float>;
-template struct Matrix<double>;
 
 template struct Image<float>;
 template struct Image<double>;

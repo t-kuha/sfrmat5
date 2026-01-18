@@ -16,11 +16,11 @@ bool nearly_zero(double v) {
 }
 
 bool check_frequency_axis(const sfrmat5::Matrix<Scalar> &dat) {
-    if (dat.rows < 2 || dat.cols < 2) {
+    if (dat.rows() < 2 || dat.cols() < 2) {
         return false;
     }
     double prev = dat(0, 0);
-    for (int i = 1; i < dat.rows; ++i) {
+    for (int i = 1; i < dat.rows(); ++i) {
         double cur = dat(i, 0);
         if (!(cur > prev)) {
             return false;
@@ -140,7 +140,7 @@ int main() {
     sfrmat5::SfrMat5<Scalar> sfr;
     sfrmat5::SfrResult<Scalar> result = sfr.compute(img);
 
-    if (result.dat.rows == 0 || result.dat.cols < 2) {
+    if (result.dat.rows() == 0 || result.dat.cols() < 2) {
         std::cerr << "SFR data missing\n";
         return 1;
     }
@@ -152,28 +152,28 @@ int main() {
         std::cerr << "SFR50 invalid\n";
         return 1;
     }
-    if (result.e.rows == 0 || result.e.cols == 0) {
+    if (result.e.rows() == 0 || result.e.cols() == 0) {
         std::cerr << "Sampling efficiency missing\n";
         return 1;
     }
 
     std::cout << "sfrmat5 basic test passed\n";
     std::cout << "SFR50: " << result.sfr50 << "\n";
-    if (result.e.rows > 0 && result.e.cols > 0) {
+    if (result.e.rows() > 0 && result.e.cols() > 0) {
         std::cout << "Sampling efficiency (10%): ";
-        for (int c = 0; c < result.e.cols; ++c) {
+        for (int c = 0; c < result.e.cols(); ++c) {
             std::cout << result.e(0, c);
-            if (c + 1 < result.e.cols) {
+            if (c + 1 < result.e.cols()) {
                 std::cout << ", ";
             }
         }
         std::cout << "\n";
     }
-    std::cout << "First " << result.dat.rows << " SFR rows (freq, mtf...):\n";
-    for (int i = 0; i < result.dat.rows; ++i) {
-        for (int c = 0; c < result.dat.cols; ++c) {
+    std::cout << "First " << result.dat.rows() << " SFR rows (freq, mtf...):\n";
+    for (int i = 0; i < result.dat.rows(); ++i) {
+        for (int c = 0; c < result.dat.cols(); ++c) {
             std::cout << result.dat(i, c);
-            if (c + 1 < result.dat.cols) {
+            if (c + 1 < result.dat.cols()) {
                 std::cout << ", ";
             }
         }

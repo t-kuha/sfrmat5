@@ -3,33 +3,30 @@
 #include <array>
 #include <vector>
 
+#include <Eigen/Dense>
+
 namespace sfrmat5 {
 
 template <typename T>
-struct Matrix {
-    int rows = 0;
-    int cols = 0;
-    std::vector<T> data;
-
-    Matrix() = default;
-    Matrix(int r, int c, T value = static_cast<T>(0));
-
-    T &operator()(int r, int c);
-    T operator()(int r, int c) const;
-};
+using Matrix = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>;
 
 template <typename T>
 struct Image {
     int rows = 0;
     int cols = 0;
     int channels = 0;
-    std::vector<T> data;
+    std::vector<Matrix<T>> planes;
 
     Image() = default;
-    Image(int r, int c, int ch, T value = static_cast<T>(0));
+    Image(int r, int c, int ch, T value = static_cast<T>(0))
+        : rows(r), cols(c), channels(ch), planes(ch, Matrix<T>(r, c)) {
+        for (int i = 0; i < ch; ++i) {
+            planes[i].setConstant(value);
+        }
+    }
 
-    T &at(int r, int c, int ch);
-    T at(int r, int c, int ch) const;
+    T &at(int r, int c, int ch) { return planes[ch](r, c); }
+    T at(int r, int c, int ch) const { return planes[ch](r, c); }
 };
 
 template <typename T>
