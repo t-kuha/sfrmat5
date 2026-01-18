@@ -766,11 +766,7 @@ template <typename T>
 Image<double> to_double_image(const Image<T> &input) {
     Image<double> out(input.rows, input.cols, input.channels, 0.0);
     for (int ch = 0; ch < input.channels; ++ch) {
-        for (int r = 0; r < input.rows; ++r) {
-            for (int c = 0; c < input.cols; ++c) {
-                out.at(r, c, ch) = static_cast<double>(input.at(r, c, ch));
-            }
-        }
+        out.planes[ch] = input.planes[ch].template cast<double>();
     }
     return out;
 }

@@ -119,13 +119,13 @@ sfrmat5::Image<Scalar> load_bmp(const std::string &path) {
                 uint8_t b = row[idx];
                 uint8_t g = row[idx + 1];
                 uint8_t rch = row[idx + 2];
-                img.at(dst_row, c, 0) = static_cast<Scalar>(rch);
-                img.at(dst_row, c, 1) = static_cast<Scalar>(g);
-                img.at(dst_row, c, 2) = static_cast<Scalar>(b);
+                img.planes[0](dst_row, c) = static_cast<Scalar>(rch);
+                img.planes[1](dst_row, c) = static_cast<Scalar>(g);
+                img.planes[2](dst_row, c) = static_cast<Scalar>(b);
             }
         } else {
             for (int c = 0; c < cols; ++c) {
-                img.at(dst_row, c, 0) = static_cast<Scalar>(row[c]);
+                img.planes[0](dst_row, c) = static_cast<Scalar>(row[c]);
             }
         }
     }

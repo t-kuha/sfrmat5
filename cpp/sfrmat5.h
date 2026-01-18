@@ -24,9 +24,6 @@ struct Image {
             planes[i].setConstant(value);
         }
     }
-
-    T &at(int r, int c, int ch) { return planes[ch](r, c); }
-    T at(int r, int c, int ch) const { return planes[ch](r, c); }
 };
 
 template <typename T>
