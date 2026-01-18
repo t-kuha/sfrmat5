@@ -189,15 +189,8 @@ Image<double> rotate90(const Image<double> &in) {
     return out;
 }
 
-struct RotateResult {
-    Image<double> image;
-    int nlin = 0;
-    int npix = 0;
-    int rflag = 0;
-};
-
-RotateResult rotatev2(const Image<double> &input) {
-    RotateResult result{input, input.rows, input.cols, 0};
+Image<double> rotatev2(const Image<double> &input) {
+    Image<double> result = input;
     int nlin = input.rows;
     int npix = input.cols;
     int mm = (input.channels == 3 || input.channels == 4) ? 1 : 0;
@@ -218,10 +211,7 @@ RotateResult rotatev2(const Image<double> &input) {
     double testh = std::abs(mean_right - mean_left);
 
     if (testv > testh) {
-        result.rflag = 1;
-        result.image = rotate90(input);
-        result.nlin = result.image.rows;
-        result.npix = result.image.cols;
+        result = rotate90(input);
     }
     return result;
 }
@@ -564,8 +554,7 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
         del = 25.4 / del;
     }
 
-    RotateResult rot = rotatev2(a);
-    a = rot.image;
+    a = rotatev2(a);
     int nlin = a.rows;
     int npix = a.cols;
     int ncol = a.channels;
