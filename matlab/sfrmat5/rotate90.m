@@ -23,7 +23,6 @@ nd = ndims(in);
 
 if nd < 1
     error('input to rotate90 must be a matrix');
-    return
 end
 
 for i = 1:n

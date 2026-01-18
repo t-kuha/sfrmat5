@@ -1,4 +1,4 @@
-function [status, dat1, ftype, fpath, fname, mp] = imageread(filename, nlin, npix)
+function [status, dat1, ftype, fpath, fname, mp] = imageread(filename)
 %[status,dat,ftype,fpath,fname, mp] = imageread(fname, nlin, npix) reads tif, jpeg, DICOM,
 %  rvg and raw data with file browser if needed. The file extension is used
 %  to idntify file format.
@@ -19,12 +19,6 @@ function [status, dat1, ftype, fpath, fname, mp] = imageread(filename, nlin, npi
 %Peter Burns , 19 June 2021
 
 status = 0;
-if nargin< 3
-    npix = 0;
-end
-if nargin< 2
-    nlin = 0;
-end
 
 if  nargin < 1 || isempty(filename) == 1
 
@@ -43,7 +37,7 @@ end %  nargin < 1;
 ftype = filename(end-2: end);
 
 if strcmp(ftype,'dcm')==1 || strcmp(ftype,'DCM')==1
-    dtest = exist('dicomread');
+    dtest = exist('dicomread', 'builtin');
     if dtest ~= 0
         info = dicominfo(filename);
         dat1 = dicomread(filename);
@@ -70,7 +64,8 @@ elseif strcmp(ftype,'rvg')==1 || strcmp(ftype,'RVG')==1 || ...
         dat1   = 0;
         ftype  = 0;
         return
-    else dtest = exist('dicomread');
+    else
+        dtest = exist('dicomread', 'builtin');
         if dtest ~= 0
             dat1 = dicomread(filename);
         else
@@ -91,7 +86,7 @@ else
     [dat1, mp] = imread(filename);
 end
 
-if exist('mp')~=1
+if exist('mp', 'var')~=1
     mp = [0:255
         0:255
         0:255]/255;

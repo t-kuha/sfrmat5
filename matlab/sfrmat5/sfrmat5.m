@@ -261,9 +261,7 @@ end
 
 % Form luminance record using the weight vector for red, green and blue
 if ncol ==3
-    lum = zeros(nlin, npix);
     lum = weight(1)*a(:,:,1) + weight(2)*a(:,:,2) + weight(3)*a(:,:,3);
-    cc = zeros(nlin, npix*4);
     cc = [ a(:, :, 1), a(:, :, 2), a(:,:, 3), lum];
     cc = reshape(cc,nlin,npix,4);
 
@@ -274,18 +272,15 @@ if ncol ==3
 end
 
 % Rotate horizontal edge so it is vertical
-rflag = 0;
 [a, nlin, npix, rflag] = rotatev2(a);  %based on data values
 loc = zeros(ncol, nlin);
 
-lowhi = 0;
 fil1 = [0.5 -0.5];
 fil2 = [0.5 0 -0.5];
 % We Need 'positive' edge
 tleft  = sum(sum(a(:,      1:5,  1),2));
 tright = sum(sum(a(:, npix-5:npix,1),2));
 if tleft>tright
-    lowhi = 1;
     fil1 = [-0.5 0.5];
     fil2 = [-0.5 0 0.5];
 end
@@ -381,7 +376,6 @@ for color=1:ncol                      % Loop for each color
     if npol>3
         x = 0: 1: nlin-1;
         y = polyval(fitme(color,:), x);
-        y1 = polyval(fitme1(color,:),x);
         [r2, rmse, merror] = rsquare(y,loc(color,:));
         if rmse>3
             beep
@@ -414,8 +408,7 @@ for color=1:ncol                      % Loop for each color
         tdat(:,2) = (loc(color, :))';
 
         x = 0: 1: nlin-1;
-        y = polyval(fitme(color,:), x);%%
-        y1 = polyval(fitme1(color,:),x);%%
+        y = polyval(fitme(color,:), x);
         [r2, rmse, merror] = rsquare(y,loc(color,:));
         disp(['mean error: ',num2str(merror)]);
         disp(['r2: ',num2str(r2),' rmse: ',num2str(rmse)])
@@ -431,8 +424,6 @@ for color=1:ncol                      % Loop for each color
         figure
         histogram(diff,15,'Normalization','probability');
         xlabel('Residual, pixel'),ylabel('Frequency, prob.');
-
-
     end   % pflag ==1
 
 end                                         % End of loop for each color

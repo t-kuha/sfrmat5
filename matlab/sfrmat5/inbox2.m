@@ -16,8 +16,6 @@ function [del, npol] = inbox2(del, npol)   %GUI for sampling and lum weights
 %
 % Copyright (c) 2017 Peter D. Burns
 
-fmt = '%5.3f';    %  2 decimal digits
-
 if nargin < 1
     del = 1;
     npol = 1;
@@ -54,11 +52,11 @@ elseif char(answer(1))~='-'
     sflag = 1;
 end
 if sflag==0
-    del =  str2num(char(answer(2)));
+    del =  str2double(char(answer(2)));
 else
-    del =  str2num(char(answer(1)));
+    del =  str2double(char(answer(1)));
     del = 25.4/del;
 end
 
-npol = str2num(char(answer(3)))';
+npol = str2double(char(answer(3)))';
 del = abs(del);

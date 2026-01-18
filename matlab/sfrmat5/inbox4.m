@@ -33,7 +33,7 @@ if nargin < 3
     npol = 1;
 end
 
-if del > 1;
+if del > 1
     def={num2str(del), '-', [num2str(weights(1,:), fmt)
         num2str(weights(2,:), fmt)
         num2str(weights(3,:), fmt)],num2str(npol)};
@@ -68,17 +68,17 @@ elseif char(answer(1))~='-'
     sflag = 1;
 end
 if sflag==0
-    del =  str2num(char(answer(2)));
+    del =  str2double(char(answer(2)));
 else
-    del =  str2num(char(answer(1)));
+    del =  str2double(char(answer(1)));
     del = 25.4/del;
 end
 
-weights = str2num(char(answer(3)))';
+weights = str2double(cellstr(answer{3}))';
 
 if sum(weights) > 1.0
     beep
     disp(' ***  WARNING: Sum of Luminance weights is greater than 1  ***');
 end
 del = abs(del);
-npol = str2num(char(answer(4)))';
+npol = str2double(char(answer(4)))';
