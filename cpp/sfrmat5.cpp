@@ -1,5 +1,7 @@
 #include "sfrmat5.h"
 
+#define USE_MATH_DEFINES
+
 #include <algorithm>
 #include <cmath>
 #include <complex>
@@ -20,8 +22,6 @@ double &Image::at(int r, int c, int ch) { return data[(ch * rows + r) * cols + c
 double Image::at(int r, int c, int ch) const { return data[(ch * rows + r) * cols + c]; }
 
 namespace {
-
-constexpr double kPi = 3.14159265358979323846;
 
 double clip_value(double in, double low, double high) {
     return std::min(std::max(in, low), high);
@@ -304,7 +304,7 @@ std::vector<double> ahamming(int n, double mid) {
     double wid = std::max(wid1, wid2);
     for (int i = 0; i < n; ++i) {
         double arg = (static_cast<double>(i) + 1.0) - mid;
-        data[i] = std::cos(kPi * arg / wid);
+        data[i] = std::cos(M_PI * arg / wid);
     }
     for (double &v : data) {
         v = 0.54 + 0.46 * v;
@@ -323,7 +323,7 @@ std::vector<double> tukey(int n, double alpha) {
     std::vector<double> w(n, 0.0);
     for (int k = 0; k <= static_cast<int>(m); ++k) {
         if (k <= alpha * m) {
-            w[k] = 0.5 * (1 + std::cos(kPi * (k / (alpha * m) - 1)));
+            w[k] = 0.5 * (1 + std::cos(M_PI * (k / (alpha * m) - 1)));
         } else {
             w[k] = 1.0;
         }
@@ -358,8 +358,8 @@ std::vector<double> fir2fix(int n, int m) {
     std::vector<double> correct(n, 1.0);
     m = m - 1;
     for (int i = 1; i < n; ++i) {
-        double num = kPi * (i + 1) * m / (2.0 * (n + 1));
-        double den = std::sin(kPi * (i + 1) * m / (2.0 * (n + 1)));
+        double num = M_PI * (i + 1) * m / (2.0 * (n + 1));
+        double den = std::sin(M_PI * (i + 1) * m / (2.0 * (n + 1)));
         if (den == 0.0) {
             continue;
         }
@@ -464,7 +464,7 @@ std::vector<std::complex<double>> fft(const std::vector<std::complex<double>> &x
         for (int k = 0; k < n; ++k) {
             std::complex<double> sum(0.0, 0.0);
             for (int t = 0; t < n; ++t) {
-                double angle = -2.0 * kPi * k * t / n;
+                double angle = -2.0 * M_PI * k * t / n;
                 sum += x[t] * std::complex<double>(std::cos(angle), std::sin(angle));
             }
             out[k] = sum;
@@ -481,7 +481,7 @@ std::vector<std::complex<double>> fft(const std::vector<std::complex<double>> &x
     odd = fft(odd);
     std::vector<std::complex<double>> out(n);
     for (int k = 0; k < n / 2; ++k) {
-        double angle = -2.0 * kPi * k / n;
+        double angle = -2.0 * M_PI * k / n;
         std::complex<double> twiddle(std::cos(angle), std::sin(angle));
         out[k] = even[k] + twiddle * odd[k];
         out[k + n / 2] = even[k] - twiddle * odd[k];
