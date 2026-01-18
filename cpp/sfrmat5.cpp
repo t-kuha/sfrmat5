@@ -134,13 +134,11 @@ Matrix<double> deriv1(const Matrix<double> &a, const std::vector<double> &fil) {
     b.setZero();
     for (int r = 0; r < a.rows(); ++r) {
         std::vector<double> row(a.cols());
-        for (int c = 0; c < a.cols(); ++c) {
-            row[c] = a(r, c);
-        }
+        Eigen::Map<const Eigen::VectorXd> row_vec(a.row(r).data(), a.cols());
+        Eigen::VectorXd::Map(&row[0], a.cols()) = row_vec;
         std::vector<double> temp = conv_same(row, fil);
-        for (int c = 0; c < a.cols(); ++c) {
-            b(r, c) = temp[c];
-        }
+        Eigen::Map<const Eigen::VectorXd> temp_vec(temp.data(), a.cols());
+        b.row(r) = temp_vec.transpose();
         if (a.cols() > 1) {
             b(r, 0) = b(r, 1);
             b(r, a.cols() - 1) = b(r, a.cols() - 2);
@@ -150,14 +148,17 @@ Matrix<double> deriv1(const Matrix<double> &a, const std::vector<double> &fil) {
 }
 
 double centroid(const std::vector<double> &x) {
-    double sum = std::accumulate(x.begin(), x.end(), 0.0);
+    if (x.empty()) {
+        return 0.0;
+    }
+    Eigen::Map<const Eigen::VectorXd> xv(x.data(), static_cast<int>(x.size()));
+    double sum = xv.sum();
     if (sum == 0.0) {
         return 0.0;
     }
-    double loc = 0.0;
-    for (size_t i = 0; i < x.size(); ++i) {
-        loc += (static_cast<double>(i) + 1.0) * x[i];
-    }
+    Eigen::VectorXd idx = Eigen::VectorXd::LinSpaced(static_cast<int>(x.size()), 1.0,
+                                                     static_cast<double>(x.size()));
+    double loc = idx.dot(xv);
     return loc / sum;
 }
 
@@ -633,11 +634,11 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
             }
         }
         Matrix<double> deriv = deriv1(plane, fil1);
+        Eigen::Map<const Eigen::VectorXd> w1(win1.data(), npix);
         for (int n = 0; n < nlin; ++n) {
             std::vector<double> row(npix, 0.0);
-            for (int c = 0; c < npix; ++c) {
-                row[c] = deriv(n, c) * win1[c];
-            }
+            Eigen::Map<const Eigen::VectorXd> drow(deriv.row(n).data(), npix);
+            Eigen::VectorXd::Map(&row[0], npix) = (drow.array() * w1.array()).matrix();
             loc[color][n] = centroid(row) - 0.5;
         }
         fitme[color] = findedge2(loc[color], nlin, npol);
@@ -652,9 +653,9 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
                 }
             }
             std::vector<double> row(npix, 0.0);
-            for (int c = 0; c < npix; ++c) {
-                row[c] = deriv(n, c) * win2[c];
-            }
+            Eigen::Map<const Eigen::VectorXd> drow(deriv.row(n).data(), npix);
+            Eigen::Map<const Eigen::VectorXd> w2(win2.data(), npix);
+            Eigen::VectorXd::Map(&row[0], npix) = (drow.array() * w2.array()).matrix();
             loc[color][n] = centroid(row) - 0.5;
         }
 
@@ -768,9 +769,9 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
         c = cent(c, mm);
         double center = nn / 2.0;
         std::vector<double> win = (wflag != 0) ? ahamming(nn, center) : tukey2(nn, alpha, center);
-        for (int i = 0; i < nn; ++i) {
-            c[i] *= win[i];
-        }
+        Eigen::Map<Eigen::VectorXd> cv(c.data(), nn);
+        Eigen::Map<const Eigen::VectorXd> wv(win.data(), nn);
+        cv.array() *= wv.array();
 
         std::vector<std::complex<double>> cx(nn);
         for (int i = 0; i < nn; ++i) {
