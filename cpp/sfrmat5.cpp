@@ -529,7 +529,7 @@ void rsquare(const std::vector<double> &y, const std::vector<double> &f, double 
 SfrResult<double> compute_sfr_double(const Image<double> &input,
                                     double del,
                                     int npol,
-                                    int wflag,
+                                    WindowFlag wflag,
                                     const std::array<double, 3> &weight) {
     if (input.rows == 0 || input.cols == 0) {
         throw std::runtime_error("Empty input image");
@@ -573,7 +573,7 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
     }
 
     Eigen::VectorXd win1;
-    if (wflag != 0) {
+    if (wflag == WindowFlag::Hamming) {
         win1 = ahamming(npix, (npix + 1) / 2.0);
     } else {
         win1 = tukey2(npix, alpha, (npix + 1) / 2.0);
@@ -598,9 +598,10 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
 
         for (int n = 0; n < nlin; ++n) {
             double place = polyval(fitme[color], static_cast<double>(n));
-            Eigen::VectorXd win2 = (wflag != 0) ? ahamming(npix, place)
-                                                : tukey2(npix, alpha, place);
-            if (wflag == 0) {
+        Eigen::VectorXd win2 = (wflag == WindowFlag::Hamming)
+                                   ? ahamming(npix, place)
+                                   : tukey2(npix, alpha, place);
+            if (wflag == WindowFlag::Tukey) {
                 win2 = win2.array() * 0.95 + 0.05;
             }
             std::vector<double> row(npix, 0.0);
@@ -708,7 +709,9 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
         }
         c = cent(c, mm);
         double center = nn / 2.0;
-        Eigen::VectorXd win = (wflag != 0) ? ahamming(nn, center) : tukey2(nn, alpha, center);
+        Eigen::VectorXd win = (wflag == WindowFlag::Hamming)
+                                  ? ahamming(nn, center)
+                                  : tukey2(nn, alpha, center);
         Eigen::Map<Eigen::VectorXd> cv(c.data(), nn);
         cv.array() *= win.array();
 
@@ -811,7 +814,7 @@ template <typename T>
 SfrMat5<T>::SfrMat5()
     : weight_{static_cast<T>(0.213), static_cast<T>(0.715), static_cast<T>(0.072)},
       npol_(5),
-      wflag_(0),
+      wflag_(WindowFlag::Tukey),
       del_(static_cast<T>(1)) {}
 
 template <typename T>
@@ -835,12 +838,12 @@ int SfrMat5<T>::npol() const {
 }
 
 template <typename T>
-void SfrMat5<T>::set_wflag(int wflag) {
+void SfrMat5<T>::set_wflag(WindowFlag wflag) {
     wflag_ = wflag;
 }
 
 template <typename T>
-int SfrMat5<T>::wflag() const {
+WindowFlag SfrMat5<T>::wflag() const {
     return wflag_;
 }
 

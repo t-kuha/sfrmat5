@@ -7,6 +7,11 @@
 
 namespace sfrmat5 {
 
+enum class WindowFlag {
+    Tukey = 0,
+    Hamming = 1
+};
+
 template <typename T>
 using Matrix = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 
@@ -49,8 +54,8 @@ public:
     void set_npol(int npol);
     int npol() const;
 
-    void set_wflag(int wflag);
-    int wflag() const;
+    void set_wflag(WindowFlag wflag);
+    WindowFlag wflag() const;
 
     void set_del(T del);
     T del() const;
@@ -60,7 +65,7 @@ public:
 private:
     std::array<T, 3> weight_;
     int npol_ = 5;
-    int wflag_ = 0;
+    WindowFlag wflag_ = WindowFlag::Tukey;
     T del_ = static_cast<T>(1);
 };
 
