@@ -1,1 +1,7 @@
 .DS_Store
+
+# MATLAB backup files
+*.asv
+
+# theid party libraries
+third_party
