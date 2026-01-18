@@ -43,11 +43,11 @@ function w = tukey(n, alpha)
 %    parameter alpha.  The default value of alpha is 0.5.
 %
 if nargin < 2
-   alpha = 0.5;
+    alpha = 0.5;
 end
 if (n == 1)
-   w = 1;
-   return
+    w = 1;
+    return
 end
 if (alpha == 0)
     w = ones(n,1);

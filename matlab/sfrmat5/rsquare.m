@@ -5,13 +5,13 @@ function [r2, rmse, merror] = rsquare(y,f,varargin)
 % [r2 rmse] = rsquare(y,f,c)
 %
 % RSQUARE computes the coefficient of determination (R-square) value from
-% actual data Y and model data F. The code uses a general version of 
-% R-square, based on comparing the variability of the estimation errors 
+% actual data Y and model data F. The code uses a general version of
+% R-square, based on comparing the variability of the estimation errors
 % with the variability of the original values. RSQUARE also outputs the
 % root mean squared error (RMSE) for the user's convenience.
 %
 % Note: RSQUARE ignores comparisons involving NaN values.
-% 
+%
 % INPUTS
 %   Y       : Actual data
 %   F       : Model fit
@@ -24,7 +24,7 @@ function [r2, rmse, merror] = rsquare(y,f,varargin)
 %            FALSE : Uses alternate R-square computation for model
 %                    without constant term [R2 = 1 - NORM(Y-F)/NORM(Y)]
 %
-% OUTPUT 
+% OUTPUT
 %   R2      : Coefficient of determination
 %   RMSE    : Root mean squared error
 %
@@ -37,7 +37,7 @@ function [r2, rmse, merror] = rsquare(y,f,varargin)
 %   figure; plot(x,y,'b-');
 %   hold on; plot(x,f,'r-');
 %   title(strcat(['R2 = ' num2str(r2) '; RMSE = ' num2str(rmse)]))
-%   
+%
 % Jered R Wells
 % 11/17/11
 % jered [dot] wells [at] duke [dot] edu
@@ -48,10 +48,10 @@ function [r2, rmse, merror] = rsquare(y,f,varargin)
 % to improve this code. His code POLYFITN was consulted in the inclusion of
 % the C-option (REF. File ID: #34765).
 
-if isempty(varargin); c = true; 
+if isempty(varargin); c = true;
 elseif length(varargin)>1; error 'Too many input arguments';
 elseif ~islogical(varargin{1}); error 'C must be logical (TRUE||FALSE)'
-else c = varargin{1}; 
+else c = varargin{1};
 end
 
 % Compare inputs
@@ -65,7 +65,7 @@ f = f(tmp);
 if c; r2 = max(0,1 - sum((y(:)-f(:)).^2)/sum((y(:)-mean(y(:))).^2));
 else r2 = 1 - sum((y(:)-f(:)).^2)/sum((y(:)).^2);
     if r2<0
-    % http://web.maths.unsw.edu.au/~adelle/Garvan/Assays/GoodnessOfFit.html
+        % http://web.maths.unsw.edu.au/~adelle/Garvan/Assays/GoodnessOfFit.html
         warning('Consider adding a constant term to your model') %#ok<WNTAG>
         r2 = 0;
     end

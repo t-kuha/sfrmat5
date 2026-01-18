@@ -29,8 +29,7 @@ scale = 1;
 for i = 2:n
     correct(i) = abs((pi*i*m/(2*(n+1))) / sin(pi*i*m/(2*(n+1))));
     correct(i) = 1 + scale*(correct(i)-1);
-  if correct(i) > 10  % Note limiting the correction to the range [1, 10]
-    correct(i) = 10;
-  end
+    if correct(i) > 10  % Note limiting the correction to the range [1, 10]
+        correct(i) = 10;
+    end
 end
-

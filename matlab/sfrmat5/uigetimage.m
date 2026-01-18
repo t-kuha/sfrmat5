@@ -1,5 +1,5 @@
 function [fname, fpath] = uigetimage(def,titl)
-%[filename, fpath] = UIGETIMAGE(def,titl)  
+%[filename, fpath] = UIGETIMAGE(def,titl)
 % Use of UIGETFILE tailored for selection of image file(s) with formats
 % supported by IMREAD. A dialog box is displayed for the user to fill in,
 % and returns the filename and path strings.
@@ -43,9 +43,9 @@ if nargin<1
 end
 if nargin==1
     titl = 'Select input image file (tif, jpg, bmp, gif, png... )';
-  
+
 end
-if isempty(def) 
+if isempty(def)
     def = pwd;
 end
 
@@ -53,42 +53,42 @@ end
 if nargin==2 && isempty(def)~=1
     hom = pwd;
     def = fileparts(def);
-%     cd(def); % jump
+    %     cd(def); % jump
     fflag = 1;
 end
 
 sup =['*tif;*TIF;*.tiff;*.TIFF;*.jpg;*.jpeg;*.JPG;*.JPEG;', ...
-      '*.gif;*.GIF;*.bmp;*.BMP;*.png;*PNG;*.jp2;*.JP2;*.jpf;*.JPF;', ...
-      '*.ptw;*.PTW;*.ptm;*.PTM']; 
-  ftype =  {sup,  'Supported: jpg, tif, bmp, gif, png ...'; ...     
-           '*.jpg;*.jpeg;*.JPG;*.JPEG',  'JPEG'; ...
-           '*.jp2;*.JP2;*.jpf;*.JPF;'    'JPEG 2000'; ...
-           '*.tif;*.TIF;*.tiff;*.TIFF',  'TIF'; ... 
-           '*.gif;*.GIF;',               'GIF'; ...
-           '*.bmp;*.BMP;',               'BMP'; ...
-           '*.png;*.PNG;',               'PNG'; ...
-           '*.ptw;*.PTW;',               'PTW'; ...
-           '*.ptm;*.PTM;',               'PTM'; ...
-           '*.*',                        'All Files (*.*)'};
-     
- [fname, fpath] = uigetfile(ftype, titl, 'MultiSelect', 'on');
-    
- %  To restrict selection to a single file, uncomment the next line, and
- %  delete the previous one above
- %  [fname, fpath] = uigetfile(ftype, titl);
+    '*.gif;*.GIF;*.bmp;*.BMP;*.png;*PNG;*.jp2;*.JP2;*.jpf;*.JPF;', ...
+    '*.ptw;*.PTW;*.ptm;*.PTM'];
+ftype =  {sup,  'Supported: jpg, tif, bmp, gif, png ...'; ...
+    '*.jpg;*.jpeg;*.JPG;*.JPEG',  'JPEG'; ...
+    '*.jp2;*.JP2;*.jpf;*.JPF;'    'JPEG 2000'; ...
+    '*.tif;*.TIF;*.tiff;*.TIFF',  'TIF'; ...
+    '*.gif;*.GIF;',               'GIF'; ...
+    '*.bmp;*.BMP;',               'BMP'; ...
+    '*.png;*.PNG;',               'PNG'; ...
+    '*.ptw;*.PTW;',               'PTW'; ...
+    '*.ptm;*.PTM;',               'PTM'; ...
+    '*.*',                        'All Files (*.*)'};
+
+[fname, fpath] = uigetfile(ftype, titl, 'MultiSelect', 'on');
+
+%  To restrict selection to a single file, uncomment the next line, and
+%  delete the previous one above
+%  [fname, fpath] = uigetfile(ftype, titl);
 if fflag~=0
     cd(hom); % jump back
 end
-    if isa(fname,'numeric')
-        disp('No file chosen');
-        return      
-  % If output argument, fpath, is not asked for, fname contains full path
-    elseif nargout<2
-        if iscell(fname) ~=1
-            fname = [fpath,fname];
-        else
-            for ii=1:length(fname)
-                fname{ii}= [fpath,fname{ii}];
-            end
+if isa(fname,'numeric')
+    disp('No file chosen');
+    return
+    % If output argument, fpath, is not asked for, fname contains full path
+elseif nargout<2
+    if iscell(fname) ~=1
+        fname = [fpath,fname];
+    else
+        for ii=1:length(fname)
+            fname{ii}= [fpath,fname{ii}];
         end
     end
+end

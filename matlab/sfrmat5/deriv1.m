@@ -10,16 +10,16 @@ function  [b] = deriv1(a, nlin, npix, fil)
 %                       27 May 2020 updated to use 'same' conv option
 %  Copyright (c) 2020 Peter D. Burns
 %
- b = zeros(nlin, npix);
- nn = length(fil);
+b = zeros(nlin, npix);
+nn = length(fil);
 
- for ii=1:nlin
-%       size(conv(a(ii,:),fil,'same'))
-%       size( b(ii, :))  
-  temp = squeeze(conv(a(ii,:),fil,'same'));
-   
-  b(ii, :) = temp;
-  b(ii,1) = b(ii,2);
-  b(ii,npix) = b(ii,npix-1);
- end
+for ii=1:nlin
+    %       size(conv(a(ii,:),fil,'same'))
+    %       size( b(ii, :))
+    temp = squeeze(conv(a(ii,:),fil,'same'));
+
+    b(ii, :) = temp;
+    b(ii,1) = b(ii,2);
+    b(ii,npix) = b(ii,npix-1);
+end
 

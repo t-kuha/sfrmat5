@@ -8,35 +8,35 @@ function status = results5(dat, datfile, roi, oename, sinfo, filename)
 %  datfile =  image file used for input data
 %  roi =      pixel coordinates that define the Region of Interest in
 %             datfile
-%  oename =    name of OECF file applied (or 'none'). 
+%  oename =    name of OECF file applied (or 'none').
 %  sinfo =     structure with various fields for sfrmat4 results
 %  filename = optional name of file where results are to be saved. If
 %             this is not supplied, the user is prompted by a dialog
-%             window.  
+%             window.
 % 19 July 2019
 %
 % Copyright (c) Peter D. Burns 2019
-% 
+%
 pfilename = filename;
 
 
 if nargin<5
-   filename = '';
+    filename = '';
 end
 if nargin<4
-   memo = ' ';
+    memo = ' ';
 end
 if nargin<3
-   disp('* Error in results function, at least 3 arguments needed *');
-   return;
+    disp('* Error in results function, at least 3 arguments needed *');
+    return;
 end
 
 pdatfile = datfile;
 
 disp(['* Writing results to file: ',filename])
 
- [rows, cols] = size(dat);
- 
+[rows, cols] = size(dat);
+
 
 edgelab = sinfo.edgelab;
 edgedat = sinfo.edgedat;
@@ -61,14 +61,14 @@ line4 = {datestr(now,1)};
 line5 = {'Image/data evaluated', pdatfile};
 line6 = {'This output file', pfilename};
 line7 = {'Selected region' ,['(', num2str(roi(1)), ', ',num2str(roi(2)),...
-                     '), to (',num2str(roi(3)),', ',num2str(roi(4)),')']};
+    '), to (',num2str(roi(3)),', ',num2str(roi(4)),')']};
 line8 = {'OECF applied', oename};
 % line8a = {'Sampling intervals', num2str(tt1(1),3),num2str(tt1(2),3)};
 % line8a = {'Sampling, Image', num2str(samp(2),3)};
 
 if strcmp(sunit, 'mm')
     line8a = {['Sampling (Image), ',sunit], num2str(samp(1),3),'PPI',num2str(round(25.4/samp(1)),3) };
-else    
+else
     line8a = {['Sampling (Image), ',sunit], num2str(samp(1),3)};
 end
 line8b = {'Edge fit order', num2str(npol,2)};
@@ -77,16 +77,16 @@ line8d = {['ESF Sampling, ',sunit], num2str(samp(3),3)};
 if cols>2
     line8e = {'  ','Red', 'Green','Blue', 'Lum'};
     line8f = {'Slope, degrees',num2str(dslope(1),3),num2str(dslope(2),3),...
-               num2str(dslope(3),3),num2str(dslope(4),3)};
+        num2str(dslope(3),3),num2str(dslope(4),3)};
     line9  = {'Color Misreg, pixels',num2str(misreg(1),2),...
-               num2str(misreg(2),2),num2str(misreg(3),2),num2str(misreg(4),2)};
+        num2str(misreg(2),2),num2str(misreg(3),2),num2str(misreg(4),2)};
     line10 = {'Sampling Efficiency',num2str(se(1,1),3),...
-               num2str(se(1,2),3),num2str(se(1,3),3),num2str(se(1,4),3)};        
+        num2str(se(1,2),3),num2str(se(1,3),3),num2str(se(1,4),3)};
     line11 = {['SFR50, ',funit],num2str(sfr1050(2,1),3),...
-               num2str(sfr1050(2,2),3),num2str(sfr1050(2,3),3),num2str(sfr1050(2,4),3)};
-  
-   line12 = {['SFR10, ',funit],num2str(sfr1050(1,1),3),...
-               num2str(sfr1050(1,2),3),num2str(sfr1050(1,3),3),num2str(sfr1050(1,4),3)};
+        num2str(sfr1050(2,2),3),num2str(sfr1050(2,3),3),num2str(sfr1050(2,4),3)};
+
+    line12 = {['SFR10, ',funit],num2str(sfr1050(1,1),3),...
+        num2str(sfr1050(1,2),3),num2str(sfr1050(1,3),3),num2str(sfr1050(1,4),3)};
 else
     line8e = ' ';
     line8f = {'Slope, degrees',num2str(dslope(1),3)};

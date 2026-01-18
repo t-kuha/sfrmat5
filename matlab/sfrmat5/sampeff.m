@@ -48,34 +48,34 @@ freqval = zeros(nval, nc);
 sfrval = zeros(nval, nc);
 
 for v = 1: nval;
- [freqval(v, :), sfrval(v, :)] = findfreq(dat, val(v), imax, fflag);
- freqval(v, :)=clip(freqval(v, :),0, hs); %added 19 April 2009 ****************
-for c = 1:nc
-  %eff(v, c) = min(round(100*freqval(v, c)/dat(imax,1)), 100);
-  eff(v, c) = min(round(100*freqval(v, c)/hs), 100); %  ************************
-end
+    [freqval(v, :), sfrval(v, :)] = findfreq(dat, val(v), imax, fflag);
+    freqval(v, :)=clip(freqval(v, :),0, hs); %added 19 April 2009 ****************
+    for c = 1:nc
+        %eff(v, c) = min(round(100*freqval(v, c)/dat(imax,1)), 100);
+        eff(v, c) = min(round(100*freqval(v, c)/hs), 100); %  ************************
+    end
 end
 
 if pflag ~= 0;
-    
-for c =1:nc
- se = ['Sampling efficiency ',num2str(eff(1,c)),'%'];
-  
- disp(['  ',se])
- figure,
-	plot(dat(:,1),dat(:,c+1)),
-	hold on
-    for v = 1:nval
-     plot(freqval(v, c),sfrval(v, c),'r*','Markersize', 12),
-    end
-     plot(dat(:,1),0.1*ones(length(dat(:,1))),'b--'),
-     plot([dat(nindex,1),dat(nindex,1)],[0,.1],'b--'),
-%     title(fn),
-     xlabel('Frequency'),
-     ylabel('SFR'),
-     text(0.8*dat(end,1),0.95, ['SE = ',num2str(eff(1,c)),'%'])
-     axis([0, dat(imax, 1), 0, 1]),
-     hold off
-end
 
-end     
+    for c =1:nc
+        se = ['Sampling efficiency ',num2str(eff(1,c)),'%'];
+
+        disp(['  ',se])
+        figure,
+    	plot(dat(:,1),dat(:,c+1)),
+    	hold on
+        for v = 1:nval
+            plot(freqval(v, c),sfrval(v, c),'r*','Markersize', 12),
+        end
+        plot(dat(:,1),0.1*ones(length(dat(:,1))),'b--'),
+        plot([dat(nindex,1),dat(nindex,1)],[0,.1],'b--'),
+        %     title(fn),
+        xlabel('Frequency'),
+        ylabel('SFR'),
+        text(0.8*dat(end,1),0.95, ['SE = ',num2str(eff(1,c)),'%'])
+        axis([0, dat(imax, 1), 0, 1]),
+        hold off
+    end
+
+end

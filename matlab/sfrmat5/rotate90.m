@@ -1,7 +1,7 @@
 function out = rotate90(in, n)
 %rotate90: 90 degree counterclockwise rotations of matrix
 %
-%[out] = rotate90(in, n) 
+%[out] = rotate90(in, n)
 % in  = input matrix (n,m) or (n,m,k)
 % n   = number of 90 degree rotation
 % out = rotated matrix
@@ -16,19 +16,19 @@ function out = rotate90(in, n)
 % Copyright (c) 2015 Peter D. Burns
 
 if nargin < 2;
- n = 1;
+    n = 1;
 end
 
 nd = ndims(in);
 
 if nd < 1
- error('input to rotate90 must be a matrix');
- return
+    error('input to rotate90 must be a matrix');
+    return
 end
 
 for i = 1:n
- out = r90(in);
- in = out;
+    out = r90(in);
+    in = out;
 end
 return
 
@@ -47,7 +47,7 @@ for c = 1: nc;
     temp =  in(:,:,c);
     temp = temp.';
     out(:,:,c) = temp(npix:-1:1, :);
-                     
+
 end
 
 out = squeeze(out);

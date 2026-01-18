@@ -26,33 +26,33 @@ fil = fil';
 for c = 1:nc;
     if fflag ~= 0;
         temp = conv2(dat(:, c+1), fil, 'same');
-	    dat(2:end-1, c+1) = temp(2:end-1);
+        dat(2:end-1, c+1) = temp(2:end-1);
     end
     test = dat(:, c+1) - val;
-	x = find(test < 0) - 1; % First crossing of threshold
-   
-	if isempty(x) == 1 | x(1) == 0;
-        
-		s = maxf;
+    x = find(test < 0) - 1; % First crossing of threshold
+
+    if isempty(x) == 1 | x(1) == 0;
+
+        s = maxf;
         sval = dat(imax, c+1);
 
-		else                 % interpolation
+    else                 % interpolation
         x = x(1);
         sval = dat(x, c+1);
         s = dat(x,1);
-		y = dat(x, c+1);
+        y = dat(x, c+1);
         y2 = dat(x+1, c+1);
         slope = (y2-y)/dat(2,1);
         dely =  test(x, 1);
         s = s - dely/slope;
-        sval = sval - dely; 
+        sval = sval - dely;
     end
     if s > maxf;
-       s = maxf;
-       sval = dat(imax, c+1);
+        s = maxf;
+        sval = dat(imax, c+1);
     end
-    
+
     freqval(c) = s;
     sfrval(c) = sval;
-    
+
 end

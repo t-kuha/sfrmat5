@@ -28,12 +28,12 @@ nn = 3;  % Limits test area. Normally not a problem.
 testv = abs(mean(a(end-nn,:,mm))-mean(a(nn,:,mm)));
 testh = abs(mean(a(:,end-nn,mm))-mean(a(:,nn,mm)));
 
- rflag =0;
+rflag =0;
 if testv > testh
- rflag =1;
- a = rotate90(a);
- temp=nlin;
- nlin = npix;
- npix = temp;
+    rflag =1;
+    a = rotate90(a);
+    temp=nlin;
+    nlin = npix;
+    npix = temp;
 
 end

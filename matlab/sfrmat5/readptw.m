@@ -9,7 +9,7 @@ function [A, fname] = readptw(fname)
 %Peter D. Burns 5 Oct. 2020. Written for Hingrid Spirlandeli
 %
 if nargin<1
-[filename, pathname] = uigetfile('*.ptw;*.ptm', 'Choose a ptw image file');
+    [filename, pathname] = uigetfile('*.ptw;*.ptm', 'Choose a ptw image file');
     if isa(filename,'double')
         disp('No file selected')
         A = 0;
@@ -18,7 +18,7 @@ if nargin<1
     else
         fname = [pathname, filename];
     end
-end    
+end
 % Initialization of the file pointer.
 fid = fopen(fname,'r');
 
@@ -44,8 +44,8 @@ fseek(fid, LgthFileMainHeader, 'bof');
 A = zeros(NbRowImage,NbColImage,Nbimage,'uint16');
 % h = waitbar(0,[filename ' database importation : ' num2str(0) '/' num2str(Nbimage) ]);
 % Main Loop
-for i=1:Nbimage 
-%     waitbar(i/Nbimage,h,[filename ' database importation : ' num2str(i) '/' num2str(Nbimage) ]); % The file pointer fid is incremented by LgthImHeader.
+for i=1:Nbimage
+    %     waitbar(i/Nbimage,h,[filename ' database importation : ' num2str(i) '/' num2str(Nbimage) ]); % The file pointer fid is incremented by LgthImHeader.
     fread(fid,LgthImHeader); % The image is extracted from the file.
     B = fread( fid , [NbColImage,NbRowImage] , 'uint16' ); % The image is stored in raw order in the binary file.
     A(:,:,i) = uint16( B' ); % The image is stored in the buffer.

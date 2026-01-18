@@ -8,7 +8,7 @@ function [loc] = centroid(x)
 
 loc = 0;
 for n=1:length(x)
- loc = loc+n*x(n);
+    loc = loc+n*x(n);
 end;
 loc = loc/sum(x);
 
