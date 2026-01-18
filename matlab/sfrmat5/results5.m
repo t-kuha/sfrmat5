@@ -1,4 +1,4 @@
-function status = results5(dat, datfile, roi, oename, sinfo, filename)
+function results5(dat, datfile, roi, oename, sinfo, filename)
 % results: Matlab function saves results computed by sfrmat5.m
 %  Data stored is in an Excel format file.
 %
@@ -17,15 +17,11 @@ function status = results5(dat, datfile, roi, oename, sinfo, filename)
 %
 % Copyright (c) Peter D. Burns 2019
 %
-pfilename = filename;
-
 
 if nargin<5
     filename = '';
 end
-if nargin<4
-    memo = ' ';
-end
+
 if nargin<3
     disp('* Error in results function, at least 3 arguments needed *');
     return;
@@ -49,13 +45,12 @@ funit = sinfo.funit;
 
 % Slope in degrees
 dslope = edgedat(:,2);
-sfil = filename;
 
-line1 = {'Output from Matlab function sfrmat5.m'};
-line3 = {'Analysis:  Spatial Frequency Response'};
-line4 = {datestr(now,1)};
+line1 = 'Output from Matlab function sfrmat5.m';
+line3 = 'Analysis:  Spatial Frequency Response';
+line4 = datetime('today', 'Format', 'dd-MM-yyyy');
 line5 = {'Image/data evaluated', pdatfile};
-line6 = {'This output file', pfilename};
+line6 = {'This output file', filename};
 line7 = {'Selected region' ,['(', num2str(roi(1)), ', ',num2str(roi(2)),...
     '), to (',num2str(roi(3)),', ',num2str(roi(4)),')']};
 line8 = {'OECF applied', oename};
@@ -95,28 +90,28 @@ else
     line13 = {['Frequency, ',funit],'SFR-r','SFR-g','SFR-b','Lum'};
 end
 
-if exist(sfil,'file')==2
-    disp(['Overwriting: ', sfil])
-    delete(sfil);
+if exist(filename, 'file')==2
+    disp(['Overwriting: ', filename])
+    delete(filename);
 end
 
-xlswrite(sfil, line1,1,'B1');
-xlswrite(sfil, line3,1,'B2');
-xlswrite(sfil, line4,1,'B4');
-xlswrite(sfil, line5,1,'B5');
-xlswrite(sfil, line6,1,'B6');
-xlswrite(sfil, line7,1,'B7');
-xlswrite(sfil, line8,1,'B8');
-xlswrite(sfil, line8a,1,'B9');
-xlswrite(sfil, line8b,1,'B10');
-xlswrite(sfil, line8c,1,'B11');
-xlswrite(sfil, line8d,1,'B12');
-xlswrite(sfil, line8e,1,'B13');
-xlswrite(sfil, line8f,1,'B14');
-xlswrite(sfil, line9,1,'B15');
-xlswrite(sfil, line10,1,'B16');
-xlswrite(sfil, line11,1,'B17');
-xlswrite(sfil, line12,1,'B18');
-xlswrite(sfil, line13,1,'B20');
-xlswrite(sfil, round(dat,3),1,'B21');
+writematrix(line1, filename, 'Sheet', 1, 'Range', 'B1');
+writematrix(line3, filename, 'Sheet', 1, 'Range', 'B2');
+writematrix(line4, filename, 'Sheet', 1, 'Range', 'B4');
+writecell(line5, filename, 'Sheet', 1, 'Range', 'B5');
+writecell(line6, filename, 'Sheet', 1, 'Range', 'B6');
+writecell(line7, filename, 'Sheet', 1, 'Range', 'B7');
+writecell(line8, filename, 'Sheet', 1, 'Range', 'B8');
+writecell(line8a, filename, 'Sheet', 1, 'Range', 'B9');
+writecell(line8b, filename, 'Sheet', 1, 'Range', 'B10');
+writecell(line8c, filename, 'Sheet', 1, 'Range', 'B11');
+writecell(line8d, filename, 'Sheet', 1, 'Range', 'B12');
+writecell(line8e, filename, 'Sheet', 1, 'Range', 'B13');
+writecell(line8f, filename, 'Sheet', 1, 'Range', 'B14');
+writecell(line9, filename, 'Sheet', 1, 'Range', 'B15');
+writecell(line10, filename, 'Sheet', 1, 'Range', 'B16');
+writecell(line11, filename, 'Sheet', 1, 'Range', 'B17');
+writecell(line12, filename, 'Sheet', 1, 'Range', 'B18');
+writecell(line13, filename, 'Sheet', 1, 'Range', 'B20');
+writematrix(round(dat,3), filename, 'Sheet', 1, 'Range', 'B21');
 pause(2);
