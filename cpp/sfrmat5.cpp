@@ -949,6 +949,58 @@ SfrResult<T> SfrMat5<T>::compute_sfr(const Image<T> &input,
     return cast_result<T>(res);
 }
 
+template <typename T>
+SfrMat5<T>::SfrMat5()
+    : weight_{static_cast<T>(0.213), static_cast<T>(0.715), static_cast<T>(0.072)},
+      npol_(5),
+      wflag_(0),
+      del_(static_cast<T>(1)) {}
+
+template <typename T>
+void SfrMat5<T>::set_weight(const std::array<T, 3> &weight) {
+    weight_ = weight;
+}
+
+template <typename T>
+const std::array<T, 3> &SfrMat5<T>::weight() const {
+    return weight_;
+}
+
+template <typename T>
+void SfrMat5<T>::set_npol(int npol) {
+    npol_ = npol;
+}
+
+template <typename T>
+int SfrMat5<T>::npol() const {
+    return npol_;
+}
+
+template <typename T>
+void SfrMat5<T>::set_wflag(int wflag) {
+    wflag_ = wflag;
+}
+
+template <typename T>
+int SfrMat5<T>::wflag() const {
+    return wflag_;
+}
+
+template <typename T>
+void SfrMat5<T>::set_del(T del) {
+    del_ = del;
+}
+
+template <typename T>
+T SfrMat5<T>::del() const {
+    return del_;
+}
+
+template <typename T>
+SfrResult<T> SfrMat5<T>::compute(const Image<T> &input) const {
+    return compute_sfr(input, del_, npol_, wflag_, weight_);
+}
+
 template class SfrMat5<float>;
 template class SfrMat5<double>;
 

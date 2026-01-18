@@ -47,6 +47,20 @@ struct SfrResult {
 template <typename T>
 class SfrMat5 {
 public:
+    SfrMat5();
+
+    void set_weight(const std::array<T, 3> &weight);
+    const std::array<T, 3> &weight() const;
+
+    void set_npol(int npol);
+    int npol() const;
+
+    void set_wflag(int wflag);
+    int wflag() const;
+
+    void set_del(T del);
+    T del() const;
+
     static SfrResult<T> compute_sfr(
         const Image<T> &input,
         T del = static_cast<T>(1),
@@ -55,6 +69,14 @@ public:
         const std::array<T, 3> &weight = {static_cast<T>(0.213),
                                           static_cast<T>(0.715),
                                           static_cast<T>(0.072)});
+
+    SfrResult<T> compute(const Image<T> &input) const;
+
+private:
+    std::array<T, 3> weight_;
+    int npol_ = 5;
+    int wflag_ = 0;
+    T del_ = static_cast<T>(1);
 };
 
 }  // namespace sfrmat5
