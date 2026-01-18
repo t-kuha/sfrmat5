@@ -61,15 +61,6 @@ public:
     void set_del(T del);
     T del() const;
 
-    static SfrResult<T> compute_sfr(
-        const Image<T> &input,
-        T del = static_cast<T>(1),
-        int npol = 5,
-        int wflag = 0,
-        const std::array<T, 3> &weight = {static_cast<T>(0.213),
-                                          static_cast<T>(0.715),
-                                          static_cast<T>(0.072)});
-
     SfrResult<T> compute(const Image<T> &input) const;
 
 private:

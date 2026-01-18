@@ -137,7 +137,8 @@ sfrmat5::Image<Scalar> load_bmp(const std::string &path) {
 int main() {
     std::string path = "Example_Images/Test_edge1.bmp";
     sfrmat5::Image<Scalar> img = load_bmp(path);
-    sfrmat5::SfrResult<Scalar> result = sfrmat5::SfrMat5<Scalar>::compute_sfr(img, static_cast<Scalar>(1), 5, 0);
+    sfrmat5::SfrMat5<Scalar> sfr;
+    sfrmat5::SfrResult<Scalar> result = sfr.compute(img);
 
     if (result.dat.rows == 0 || result.dat.cols < 2) {
         std::cerr << "SFR data missing\n";

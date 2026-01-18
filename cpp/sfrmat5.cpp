@@ -932,24 +932,6 @@ SfrResult<T> cast_result(const SfrResult<double> &input) {
 }  // namespace
 
 template <typename T>
-SfrResult<T> SfrMat5<T>::compute_sfr(const Image<T> &input,
-                                    T del,
-                                    int npol,
-                                    int wflag,
-                                    const std::array<T, 3> &weight) {
-    Image<double> img = to_double_image(input);
-    std::array<double, 3> w = {static_cast<double>(weight[0]),
-                               static_cast<double>(weight[1]),
-                               static_cast<double>(weight[2])};
-    SfrResult<double> res = compute_sfr_double(img,
-                                               static_cast<double>(del),
-                                               npol,
-                                               wflag,
-                                               w);
-    return cast_result<T>(res);
-}
-
-template <typename T>
 SfrMat5<T>::SfrMat5()
     : weight_{static_cast<T>(0.213), static_cast<T>(0.715), static_cast<T>(0.072)},
       npol_(5),
@@ -998,7 +980,16 @@ T SfrMat5<T>::del() const {
 
 template <typename T>
 SfrResult<T> SfrMat5<T>::compute(const Image<T> &input) const {
-    return compute_sfr(input, del_, npol_, wflag_, weight_);
+    Image<double> img = to_double_image(input);
+    std::array<double, 3> w = {static_cast<double>(weight_[0]),
+                               static_cast<double>(weight_[1]),
+                               static_cast<double>(weight_[2])};
+    SfrResult<double> res = compute_sfr_double(img,
+                                               static_cast<double>(del_),
+                                               npol_,
+                                               wflag_,
+                                               w);
+    return cast_result<T>(res);
 }
 
 template class SfrMat5<float>;
