@@ -41,10 +41,8 @@ NbRowImage = fread(fid,1,'uint16');
 fseek(fid, LgthFileMainHeader, 'bof');
 % Initialization of a viedo buffer.
 A = zeros(NbRowImage,NbColImage,Nbimage,'uint16');
-% h = waitbar(0,[filename ' database importation : ' num2str(0) '/' num2str(Nbimage) ]);
 % Main Loop
 for i=1:Nbimage
-    %     waitbar(i/Nbimage,h,[filename ' database importation : ' num2str(i) '/' num2str(Nbimage) ]); % The file pointer fid is incremented by LgthImHeader.
     fread(fid,LgthImHeader); % The image is extracted from the file.
     B = fread( fid , [NbColImage,NbRowImage] , 'uint16' ); % The image is stored in raw order in the binary file.
     A(:,:,i) = uint16( B' ); % The image is stored in the buffer.

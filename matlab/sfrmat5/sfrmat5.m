@@ -177,11 +177,6 @@ switch nargin
             end
         end
         alpha = defalpha;
-        %     otherwise
-        %      disp('Incorrect number or arguments. There should be 1 - 6');
-        %      status = 1;
-        %      return
-
 end
 if isempty(npol) == 1
     npol = defnpol;
@@ -193,14 +188,6 @@ if isempty(alpha)
     alpha = defalpha;
 end
 
-% if exist('npol','var') ~=1
-%     norder = input('Edge fit order? [5]');
-%     if isempty(norder)==1
-%         npol = 5;
-%     else
-%         npol = norder;
-%     end
-% end
 if npol>5
     disp('* Edge fit order must be 5 or less *')
     npol = 5;
@@ -508,9 +495,6 @@ if rflag==1
     slope_deg =slope_deg + 90;
 end
 disp(['Edge angle: ',num2str(slope_deg, 3),' degrees'])
-if slope_deg < 1
-    %   beep, warndlg(['High slope warning ',num2str(slope_deg,3),' degrees'], 'Watch it!')
-end
 
 delimage = del;
 
@@ -659,7 +643,6 @@ if ncol >1
     sym{3} = '-.b';
     sym{4} = '*k';
     ttext = filename;
-    %   legg = [{'r'},{'g'},{'b'},{'lum'}];
 else
     ttext = filename;
     sym{1} = 'k';

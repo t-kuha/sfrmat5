@@ -79,21 +79,15 @@ disp(' ');
 temp = class(array);
 
 if strcmp(temp(1:5), 'uint8')==1
-    %    gg = axes;
     imagesc(array),
-
 else
-    %   gg = axes;
     imagesc( double(array)/double(max(max(max(array)))))
-
 end
 title(dialtext) %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 axis image %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if ncol == 1
     colormap('gray')
 end
-
-%axis off,
 
 waitforbuttonpress;
 ul=get(gca,'CurrentPoint');

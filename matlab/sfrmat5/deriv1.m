@@ -13,8 +13,6 @@ function  [b] = deriv1(a, nlin, npix, fil)
 b = zeros(nlin, npix);
 
 for ii=1:nlin
-    %       size(conv(a(ii,:),fil,'same'))
-    %       size( b(ii, :))
     temp = squeeze(conv(a(ii,:),fil,'same'));
 
     b(ii, :) = temp;

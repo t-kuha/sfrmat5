@@ -16,7 +16,6 @@ maxh = scale*ms(4)-ms(2);
 fw = width/maxw;
 fh = height/maxh;
 
-%if max(fw,fh) > 1;
 if fw > fh
     width = maxw;
     height = width/rat;
@@ -24,5 +23,5 @@ else
     height = maxh;
     width = height*rat;
 end
-%end
+
 pos = [center(1)-width/2, center(2)-height/2, width, height];

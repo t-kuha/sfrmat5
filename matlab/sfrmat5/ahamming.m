@@ -11,7 +11,6 @@ function [data] = ahamming(n, mid)
 %  Copyright (c) 2007 Peter D. Burns
 
 data = zeros(n,1);
-%
 mid = mid+0.5;  % added 13 June 2019
 
 wid1 = mid-1;

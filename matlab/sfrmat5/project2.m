@@ -41,7 +41,7 @@ if offset>0
     offset=0;
 end
 bwidth = nn + del+150;
-barray = zeros(2, bwidth);  %%%%%
+barray = zeros(2, bwidth);
 
 % Projection and binning
 p2 = zeros(nlin,1);
@@ -68,12 +68,11 @@ for n=1:npix
 end
 
 point = zeros(nn,1);
-start = 1+round(0.5*del); %*********************************
+start = 1+round(0.5*del);
 
 % Check for zero counts
 nz =0;
-for i = start:start+nn-1 % ********************************
-    %
+for i = start:start+nn-1
     if barray(1, i) ==0
         nz = nz +1;
         status = 0;

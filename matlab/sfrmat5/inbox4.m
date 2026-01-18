@@ -46,9 +46,7 @@ end
 
 title='  Data sampling, weights & edge fit ';
 prompt={'Data sampling in dpi',' or mm', 'Luminance weights  for R, G, B', 'Edge fit order, linear (default) = 1' };
-%   def={'-', '1', ['0.3'
-%                     '0.6'
-%                     '0.1']};
+
 lineNo=[1, 1, 3, 1]';
 AddOpts.Resize='on';
 AddOpts.WindowStyle='normal';
@@ -76,11 +74,11 @@ else
     del = 25.4/del;
 end
 
-weights = str2num(char(answer(3)))';   %%
+weights = str2num(char(answer(3)))';
 
 if sum(weights) > 1.0
     beep
     disp(' ***  WARNING: Sum of Luminance weights is greater than 1  ***');
 end
 del = abs(del);
-npol = str2num(char(answer(4)))';   %%
+npol = str2num(char(answer(4)))';

@@ -74,7 +74,6 @@ ftype =  {sup,  'Supported: jpg, tif, bmp, gif, png ...'; ...
 
 %  To restrict selection to a single file, uncomment the next line, and
 %  delete the previous one above
-%  [fname, fpath] = uigetfile(ftype, titl);
 if fflag~=0
     cd(hom); % jump back
 end

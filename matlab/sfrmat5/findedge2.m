@@ -14,9 +14,7 @@ function  [p, s, mu] = findedge2(cent, nlin, nn)
 if nargin<3
     nn=1;
 end
-%  if nn>3
-%      disp(['Warning: Polynominal fit to edge is of order ',num2str(nn)]);
-%  end
+
 index=0:nlin-1;
 % Adding output variable mu makes the fit in centered and scaled x values
 % this improves the fitting, 16 July 2019

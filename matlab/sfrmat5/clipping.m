@@ -45,10 +45,3 @@ for k =1: ncol
 end
 
 nlow = nlow./n;
-if status ~= 1
-    % hh =warndlg('Data clipping errors detected','ClipCheck','non-modal');
-    %hh = txtbox('Data clipping errors detected','ClipCheck','non-modal');
-
-    %close(hh);
-end
-return;

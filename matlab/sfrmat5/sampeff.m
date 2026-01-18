@@ -30,13 +30,12 @@ imax= length(dat(:,1)); % added 19 April 2009
 x = find(dat(:,1) > hs);
 if isempty(x) == 1
     disp(' Missing SFR data, frequency up to half-sampling needed')
-    eff = 0;  %%%%%
+    eff = 0;
     freqval = 0;
     sfrval = 0;
     return
 end
 nindex = x(1);  % added 19 April 2009
-%imax = x(1);   % Changed 19 April 2009
 dat = dat(1: imax, :);
 
 [n, m, ~] = size(dat);
@@ -51,7 +50,6 @@ for v = 1: nval
     [freqval(v, :), sfrval(v, :)] = findfreq(dat, val(v), imax, fflag);
     freqval(v, :)=clip(freqval(v, :),0, hs); %added 19 April 2009 ****************
     for c = 1:nc
-        %eff(v, c) = min(round(100*freqval(v, c)/dat(imax,1)), 100);
         eff(v, c) = min(round(100*freqval(v, c)/hs), 100); %  ************************
     end
 end
@@ -70,7 +68,6 @@ if pflag ~= 0
         end
         plot(dat(:,1),0.1*ones(length(dat(:,1))),'b--'),
         plot([dat(nindex,1),dat(nindex,1)],[0,.1],'b--'),
-        %     title(fn),
         xlabel('Frequency'),
         ylabel('SFR'),
         text(0.8*dat(end,1),0.95, ['SE = ',num2str(eff(1,c)),'%'])

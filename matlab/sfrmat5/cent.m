@@ -19,12 +19,10 @@ if del > 0
     for i = 1:n-del
         b(i) = a(i + del);
     end
-
 elseif del < 1
     for i = -del+1:n
         b(i) = a(i + del);
     end
-
 else
     b = a;
 end

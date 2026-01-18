@@ -43,8 +43,6 @@ answer=inputdlg(prompt, title, lineNo, def, AddOpts);
 
 % Catch for CANCEL button
 if isempty(answer) == 1
-    %  del = 1;
-    %  npol = 1;
     return
 end
 
@@ -62,6 +60,5 @@ else
     del = 25.4/del;
 end
 
-npol = str2num(char(answer(3)))';   %%
+npol = str2num(char(answer(3)))';
 del = abs(del);
-%%

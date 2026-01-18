@@ -48,7 +48,6 @@ sunit = sinfo.sunit;
 funit = sinfo.funit;
 
 % Slope in degrees
-% dslope = 180*atan(edgedat(:,2))/pi;
 dslope = edgedat(:,2);
 sfil = filename;
 
@@ -60,8 +59,6 @@ line6 = {'This output file', pfilename};
 line7 = {'Selected region' ,['(', num2str(roi(1)), ', ',num2str(roi(2)),...
     '), to (',num2str(roi(3)),', ',num2str(roi(4)),')']};
 line8 = {'OECF applied', oename};
-% line8a = {'Sampling intervals', num2str(tt1(1),3),num2str(tt1(2),3)};
-% line8a = {'Sampling, Image', num2str(samp(2),3)};
 
 if strcmp(sunit, 'mm')
     line8a = {['Sampling (Image), ',sunit], num2str(samp(1),3),'PPI',num2str(round(25.4/samp(1)),3) };
@@ -104,7 +101,6 @@ if exist(sfil,'file')==2
 end
 
 xlswrite(sfil, line1,1,'B1');
-% xlswrite(sfil, line2,1,'B2');
 xlswrite(sfil, line3,1,'B2');
 xlswrite(sfil, line4,1,'B4');
 xlswrite(sfil, line5,1,'B5');
