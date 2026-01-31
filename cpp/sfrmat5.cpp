@@ -18,7 +18,7 @@ double clip_value(double in, double low, double high) {
     return std::min(std::max(in, low), high);
 }
 
-double mean(const std::vector<double> &v) {
+double mean(const std::vector<double>& v) {
     if (v.empty()) {
         return 0.0;
     }
@@ -26,7 +26,7 @@ double mean(const std::vector<double> &v) {
     return sum / static_cast<double>(v.size());
 }
 
-double stddev(const std::vector<double> &v, double m) {
+double stddev(const std::vector<double>& v, double m) {
     if (v.size() < 2) {
         return 0.0;
     }
@@ -53,7 +53,7 @@ double nchoosek(int n, int k) {
     return res;
 }
 
-std::vector<double> polyfit_convert(const std::vector<double> &p2, const std::vector<double> &x) {
+std::vector<double> polyfit_convert(const std::vector<double>& p2, const std::vector<double>& x) {
     int n = static_cast<int>(p2.size()) - 1;
     double m = mean(x);
     double s = stddev(x, m);
@@ -70,8 +70,7 @@ std::vector<double> polyfit_convert(const std::vector<double> &p2, const std::ve
     return retval;
 }
 
-std::vector<double> polyfit_scaled(const std::vector<double> &x,
-                                   const std::vector<double> &y,
+std::vector<double> polyfit_scaled(const std::vector<double>& x, const std::vector<double>& y,
                                    int degree) {
     if (x.size() != y.size()) {
         throw std::runtime_error("polyfit: x and y sizes differ");
@@ -104,7 +103,7 @@ std::vector<double> polyfit_scaled(const std::vector<double> &x,
     return polyfit_convert(coeffs, x);
 }
 
-double polyval(const std::vector<double> &p, double x) {
+double polyval(const std::vector<double>& p, double x) {
     double y = 0.0;
     for (double coeff : p) {
         y = y * x + coeff;
@@ -112,7 +111,7 @@ double polyval(const std::vector<double> &p, double x) {
     return y;
 }
 
-std::vector<double> conv_same(const std::vector<double> &x, const std::vector<double> &h) {
+std::vector<double> conv_same(const std::vector<double>& x, const std::vector<double>& h) {
     int n = static_cast<int>(x.size());
     int m = static_cast<int>(h.size());
     std::vector<double> full(n + m - 1, 0.0);
@@ -129,7 +128,7 @@ std::vector<double> conv_same(const std::vector<double> &x, const std::vector<do
     return same;
 }
 
-Matrix<double> deriv1(const Matrix<double> &a, const std::vector<double> &fil) {
+Matrix<double> deriv1(const Matrix<double>& a, const std::vector<double>& fil) {
     Matrix<double> b(a.rows(), a.cols());
     for (int r = 0; r < a.rows(); ++r) {
         std::vector<double> row(a.cols());
@@ -146,7 +145,7 @@ Matrix<double> deriv1(const Matrix<double> &a, const std::vector<double> &fil) {
     return b;
 }
 
-double centroid(const std::vector<double> &x) {
+double centroid(const std::vector<double>& x) {
     if (x.empty()) {
         return 0.0;
     }
@@ -155,13 +154,13 @@ double centroid(const std::vector<double> &x) {
     if (sum == 0.0) {
         return 0.0;
     }
-    Eigen::VectorXd idx = Eigen::VectorXd::LinSpaced(static_cast<int>(x.size()), 1.0,
-                                                     static_cast<double>(x.size()));
+    Eigen::VectorXd idx =
+        Eigen::VectorXd::LinSpaced(static_cast<int>(x.size()), 1.0, static_cast<double>(x.size()));
     double loc = idx.dot(xv);
     return loc / sum;
 }
 
-std::vector<double> cent(const std::vector<double> &a, double center) {
+std::vector<double> cent(const std::vector<double>& a, double center) {
     int n = static_cast<int>(a.size());
     std::vector<double> b(n, 0.0);
     int mid = static_cast<int>(std::round((n + 1) / 2.0));
@@ -180,7 +179,7 @@ std::vector<double> cent(const std::vector<double> &a, double center) {
     return b;
 }
 
-Image<double> rotate90(const Image<double> &in) {
+Image<double> rotate90(const Image<double>& in) {
     Image<double> out(in.cols, in.rows, in.channels, 0.0);
     for (int ch = 0; ch < in.channels; ++ch) {
         // Rotate 90 degrees counterclockwise: transpose then flip vertically.
@@ -189,7 +188,7 @@ Image<double> rotate90(const Image<double> &in) {
     return out;
 }
 
-Image<double> rotatev2(const Image<double> &input) {
+Image<double> rotatev2(const Image<double>& input) {
     Image<double> result = input;
     int nlin = input.rows;
     int npix = input.cols;
@@ -201,7 +200,7 @@ Image<double> rotatev2(const Image<double> &input) {
     int col_left = std::max(0, nn - 1);
     int col_right = std::max(0, npix - nn - 1);
 
-    const Matrix<double> &plane = input.planes[mm];
+    const Matrix<double>& plane = input.planes[mm];
     double mean_bot = plane.row(row_bot).mean();
     double mean_top = plane.row(row_top).mean();
     double mean_right = plane.col(col_right).mean();
@@ -293,7 +292,7 @@ std::vector<double> fir2fix(int n, int m) {
     return correct;
 }
 
-std::vector<double> findedge2(const std::vector<double> &cent, int nlin, int nn) {
+std::vector<double> findedge2(const std::vector<double>& cent, int nlin, int nn) {
     std::vector<double> index(nlin, 0.0);
     for (int i = 0; i < nlin; ++i) {
         index[i] = static_cast<double>(i);
@@ -306,7 +305,7 @@ struct ProjectResult {
     int status = 0;
 };
 
-ProjectResult project2(const Matrix<double> &bb, const std::vector<double> &fitme, int fac) {
+ProjectResult project2(const Matrix<double>& bb, const std::vector<double>& fitme, int fac) {
     int nlin = bb.rows();
     int npix = bb.cols();
     if (fac <= 0) {
@@ -373,7 +372,7 @@ ProjectResult project2(const Matrix<double> &bb, const std::vector<double> &fitm
     return result;
 }
 
-std::vector<std::complex<double>> fft(const std::vector<std::complex<double>> &x) {
+std::vector<std::complex<double>> fft(const std::vector<std::complex<double>>& x) {
     int n = static_cast<int>(x.size());
     if (n == 1) {
         return x;
@@ -408,7 +407,7 @@ std::vector<std::complex<double>> fft(const std::vector<std::complex<double>> &x
     return out;
 }
 
-std::vector<double> findfreq(const Matrix<double> &dat, double val, int imax, int fflag) {
+std::vector<double> findfreq(const Matrix<double>& dat, double val, int imax, int fflag) {
     int nc = dat.cols() - 1;
     std::vector<double> freqval(nc, 0.0);
     std::vector<double> sfrval(nc, 0.0);
@@ -467,7 +466,8 @@ std::vector<double> findfreq(const Matrix<double> &dat, double val, int imax, in
     return out;
 }
 
-Matrix<double> sampeff(const Matrix<double> &dat, const std::vector<double> &val, double del, int fflag) {
+Matrix<double> sampeff(const Matrix<double>& dat, const std::vector<double>& val, double del,
+                       int fflag) {
     if (dat.rows() == 0 || dat.cols() < 2) {
         return Matrix<double>();
     }
@@ -499,7 +499,7 @@ Matrix<double> sampeff(const Matrix<double> &dat, const std::vector<double> &val
     return eff;
 }
 
-void rsquare(const std::vector<double> &y, const std::vector<double> &f, double &r2, double &rmse) {
+void rsquare(const std::vector<double>& y, const std::vector<double>& f, double& r2, double& rmse) {
     if (y.size() != f.size() || y.empty()) {
         r2 = 0.0;
         rmse = 0.0;
@@ -526,11 +526,8 @@ void rsquare(const std::vector<double> &y, const std::vector<double> &f, double 
     rmse = std::sqrt(ss_res / static_cast<double>(yy.size()));
 }
 
-SfrResult<double> compute_sfr_double(const Image<double> &input,
-                                    double del,
-                                    int npol,
-                                    WindowFlag wflag,
-                                    const std::array<double, 3> &weight) {
+SfrResult<double> compute_sfr_double(const Image<double>& input, double del, int npol,
+                                     WindowFlag wflag, const std::array<double, 3>& weight) {
     if (input.rows == 0 || input.cols == 0) {
         throw std::runtime_error("Empty input image");
     }
@@ -544,9 +541,7 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
         out.planes[0] = a.planes[0];
         out.planes[1] = a.planes[1];
         out.planes[2] = a.planes[2];
-        out.planes[3] = weight[0] * a.planes[0]
-                        + weight[1] * a.planes[1]
-                        + weight[2] * a.planes[2];
+        out.planes[3] = weight[0] * a.planes[0] + weight[1] * a.planes[1] + weight[2] * a.planes[2];
         a = out;
     }
 
@@ -561,7 +556,7 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
 
     int left_cols = std::min(5, npix);
     int right_cols = std::min(6, npix);
-    const Matrix<double> &plane0 = a.planes[0];
+    const Matrix<double>& plane0 = a.planes[0];
     double tleft = plane0.leftCols(left_cols).sum();
     double tright = plane0.rightCols(right_cols).sum();
 
@@ -587,7 +582,7 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
     for (int color = 0; color < ncol; ++color) {
         Matrix<double> plane = a.planes[color];
         Matrix<double> deriv = deriv1(plane, fil1);
-        const Eigen::VectorXd &w1 = win1;
+        const Eigen::VectorXd& w1 = win1;
         for (int n = 0; n < nlin; ++n) {
             std::vector<double> row(npix, 0.0);
             Eigen::Map<const Eigen::VectorXd> drow(deriv.row(n).data(), npix);
@@ -598,9 +593,8 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
 
         for (int n = 0; n < nlin; ++n) {
             double place = polyval(fitme[color], static_cast<double>(n));
-        Eigen::VectorXd win2 = (wflag == WindowFlag::Hamming)
-                                   ? ahamming(npix, place)
-                                   : tukey2(npix, alpha, place);
+            Eigen::VectorXd win2 =
+                (wflag == WindowFlag::Hamming) ? ahamming(npix, place) : tukey2(npix, alpha, place);
             if (wflag == WindowFlag::Tukey) {
                 win2 = win2.array() * 0.95 + 0.05;
             }
@@ -640,7 +634,8 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
     double slope_ref = fitme1.back()[fitme1.back().size() - 2];
     int nlin1 = nlin;
     if (std::abs(slope_ref) > std::numeric_limits<double>::epsilon()) {
-        nlin1 = static_cast<int>(std::round(std::floor(nlin * std::abs(slope_ref)) / std::abs(slope_ref)));
+        nlin1 = static_cast<int>(
+            std::round(std::floor(nlin * std::abs(slope_ref)) / std::abs(slope_ref)));
     }
     nlin1 = std::max(1, std::min(nlin1, nlin));
     if (nlin1 < nlin) {
@@ -658,7 +653,7 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
     del = del * delfac;
     double del2 = del / nbin;
     if (ncol > 2) {
-        for (double &m : misreg) {
+        for (double& m : misreg) {
             m *= delfac;
         }
     }
@@ -709,9 +704,8 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
         }
         c = cent(c, mm);
         double center = nn / 2.0;
-        Eigen::VectorXd win = (wflag == WindowFlag::Hamming)
-                                  ? ahamming(nn, center)
-                                  : tukey2(nn, alpha, center);
+        Eigen::VectorXd win =
+            (wflag == WindowFlag::Hamming) ? ahamming(nn, center) : tukey2(nn, alpha, center);
         Eigen::Map<Eigen::VectorXd> cv(c.data(), nn);
         cv.array() *= win.array();
 
@@ -765,8 +759,7 @@ SfrResult<double> compute_sfr_double(const Image<double> &input,
     return result;
 }
 
-template <typename T>
-Image<double> to_double_image(const Image<T> &input) {
+template <typename T> Image<double> to_double_image(const Image<T>& input) {
     Image<double> out(input.rows, input.cols, input.channels, 0.0);
     for (int ch = 0; ch < input.channels; ++ch) {
         out.planes[ch] = input.planes[ch].template cast<double>();
@@ -774,8 +767,7 @@ Image<double> to_double_image(const Image<T> &input) {
     return out;
 }
 
-template <typename T>
-Matrix<T> cast_matrix(const Matrix<double> &input) {
+template <typename T> Matrix<T> cast_matrix(const Matrix<double>& input) {
     Matrix<T> out(input.rows(), input.cols());
     for (int r = 0; r < input.rows(); ++r) {
         for (int c = 0; c < input.cols(); ++c) {
@@ -785,8 +777,7 @@ Matrix<T> cast_matrix(const Matrix<double> &input) {
     return out;
 }
 
-template <typename T>
-std::vector<T> cast_vector(const std::vector<double> &input) {
+template <typename T> std::vector<T> cast_vector(const std::vector<double>& input) {
     std::vector<T> out(input.size(), static_cast<T>(0));
     for (size_t i = 0; i < input.size(); ++i) {
         out[i] = static_cast<T>(input[i]);
@@ -794,8 +785,7 @@ std::vector<T> cast_vector(const std::vector<double> &input) {
     return out;
 }
 
-template <typename T>
-SfrResult<T> cast_result(const SfrResult<double> &input) {
+template <typename T> SfrResult<T> cast_result(const SfrResult<double>& input) {
     SfrResult<T> out;
     out.status = input.status;
     out.dat = cast_matrix<T>(input.dat);
@@ -808,66 +798,50 @@ SfrResult<T> cast_result(const SfrResult<double> &input) {
     return out;
 }
 
-}  // namespace
+} // namespace
 
 template <typename T>
 SfrMat5<T>::SfrMat5()
-    : weight_{static_cast<T>(0.213), static_cast<T>(0.715), static_cast<T>(0.072)},
-      npol_(5),
-      wflag_(WindowFlag::Tukey),
-      del_(static_cast<T>(1)) {}
+    : weight_{static_cast<T>(0.213), static_cast<T>(0.715), static_cast<T>(0.072)}, npol_(5),
+      wflag_(WindowFlag::Tukey), del_(static_cast<T>(1)) {}
 
-template <typename T>
-void SfrMat5<T>::set_weight(const std::array<T, 3> &weight) {
+template <typename T> void SfrMat5<T>::set_weight(const std::array<T, 3>& weight) {
     weight_ = weight;
 }
 
-template <typename T>
-const std::array<T, 3> &SfrMat5<T>::weight() const {
+template <typename T> const std::array<T, 3>& SfrMat5<T>::weight() const {
     return weight_;
 }
 
-template <typename T>
-void SfrMat5<T>::set_npol(int npol) {
+template <typename T> void SfrMat5<T>::set_npol(int npol) {
     npol_ = npol;
 }
 
-template <typename T>
-int SfrMat5<T>::npol() const {
+template <typename T> int SfrMat5<T>::npol() const {
     return npol_;
 }
 
-template <typename T>
-void SfrMat5<T>::set_wflag(WindowFlag wflag) {
+template <typename T> void SfrMat5<T>::set_wflag(WindowFlag wflag) {
     wflag_ = wflag;
 }
 
-template <typename T>
-WindowFlag SfrMat5<T>::wflag() const {
+template <typename T> WindowFlag SfrMat5<T>::wflag() const {
     return wflag_;
 }
 
-template <typename T>
-void SfrMat5<T>::set_del(T del) {
+template <typename T> void SfrMat5<T>::set_del(T del) {
     del_ = del;
 }
 
-template <typename T>
-T SfrMat5<T>::del() const {
+template <typename T> T SfrMat5<T>::del() const {
     return del_;
 }
 
-template <typename T>
-SfrResult<T> SfrMat5<T>::compute(const Image<T> &input) const {
+template <typename T> SfrResult<T> SfrMat5<T>::compute(const Image<T>& input) const {
     Image<double> img = to_double_image(input);
-    std::array<double, 3> w = {static_cast<double>(weight_[0]),
-                               static_cast<double>(weight_[1]),
+    std::array<double, 3> w = {static_cast<double>(weight_[0]), static_cast<double>(weight_[1]),
                                static_cast<double>(weight_[2])};
-    SfrResult<double> res = compute_sfr_double(img,
-                                               static_cast<double>(del_),
-                                               npol_,
-                                               wflag_,
-                                               w);
+    SfrResult<double> res = compute_sfr_double(img, static_cast<double>(del_), npol_, wflag_, w);
     return cast_result<T>(res);
 }
 
@@ -880,4 +854,4 @@ template struct Image<double>;
 template struct SfrResult<float>;
 template struct SfrResult<double>;
 
-}  // namespace sfrmat5
+} // namespace sfrmat5

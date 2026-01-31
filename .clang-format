@@ -1,0 +1,13 @@
+# Minimal .clang-format for a C++ project
+BasedOnStyle: LLVM
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 100
+BreakBeforeBraces: Attach
+SpaceBeforeParens: ControlStatements
+AllowShortFunctionsOnASingleLine: Empty
+SortIncludes: true
+IncludeBlocks: Preserve
+DerivePointerAlignment: false
+PointerAlignment: Left

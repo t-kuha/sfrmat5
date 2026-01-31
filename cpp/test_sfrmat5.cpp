@@ -1,7 +1,7 @@
 #include "sfrmat5.h"
 
-#include <cstdint>
 #include <cmath>
+#include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
@@ -15,7 +15,7 @@ bool nearly_zero(double v) {
     return std::abs(v) < 1e-9;
 }
 
-bool check_frequency_axis(const sfrmat5::Matrix<Scalar> &dat) {
+bool check_frequency_axis(const sfrmat5::Matrix<Scalar>& dat) {
     if (dat.rows() < 2 || dat.cols() < 2) {
         return false;
     }
@@ -30,25 +30,25 @@ bool check_frequency_axis(const sfrmat5::Matrix<Scalar> &dat) {
     return true;
 }
 
-uint16_t read_u16(std::ifstream &in) {
+uint16_t read_u16(std::ifstream& in) {
     uint8_t b0 = 0;
     uint8_t b1 = 0;
-    in.read(reinterpret_cast<char *>(&b0), 1);
-    in.read(reinterpret_cast<char *>(&b1), 1);
+    in.read(reinterpret_cast<char*>(&b0), 1);
+    in.read(reinterpret_cast<char*>(&b1), 1);
     return static_cast<uint16_t>(b0 | (b1 << 8));
 }
 
-uint32_t read_u32(std::ifstream &in) {
+uint32_t read_u32(std::ifstream& in) {
     uint8_t b[4] = {0, 0, 0, 0};
-    in.read(reinterpret_cast<char *>(b), 4);
+    in.read(reinterpret_cast<char*>(b), 4);
     return static_cast<uint32_t>(b[0] | (b[1] << 8) | (b[2] << 16) | (b[3] << 24));
 }
 
-int32_t read_i32(std::ifstream &in) {
+int32_t read_i32(std::ifstream& in) {
     return static_cast<int32_t>(read_u32(in));
 }
 
-sfrmat5::Image<Scalar> load_bmp(const std::string &path) {
+sfrmat5::Image<Scalar> load_bmp(const std::string& path) {
     std::ifstream in(path, std::ios::binary);
     if (!in) {
         throw std::runtime_error("Failed to open BMP");
@@ -109,7 +109,7 @@ sfrmat5::Image<Scalar> load_bmp(const std::string &path) {
     std::vector<uint8_t> row(row_bytes, 0);
     for (int r = 0; r < rows; ++r) {
         int dst_row = bottom_up ? (rows - 1 - r) : r;
-        in.read(reinterpret_cast<char *>(row.data()), row_bytes);
+        in.read(reinterpret_cast<char*>(row.data()), row_bytes);
         if (!in) {
             throw std::runtime_error("BMP read failed");
         }
@@ -132,7 +132,7 @@ sfrmat5::Image<Scalar> load_bmp(const std::string &path) {
     return img;
 }
 
-}  // namespace
+} // namespace
 
 int main() {
     std::string path = "Example_Images/Test_edge1.bmp";
