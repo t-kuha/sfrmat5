@@ -14,10 +14,6 @@ namespace sfrmat5 {
 
 namespace {
 
-double clip_value(double in, double low, double high) {
-    return std::min(std::max(in, low), high);
-}
-
 double mean(const std::vector<double>& v) {
     if (v.empty()) {
         return 0.0;
@@ -492,7 +488,7 @@ Matrix<double> sampeff(const Matrix<double>& dat, const std::vector<double>& val
     for (size_t v = 0; v < val.size(); ++v) {
         std::vector<double> freq_sfr = findfreq(dat, val[v], imax, fflag);
         for (int c = 0; c < nc; ++c) {
-            double freq = clip_value(freq_sfr[c], 0.0, hs);
+            double freq = std::clamp(freq_sfr[c], 0.0, hs);
             eff(static_cast<int>(v), c) = std::min(std::round(100.0 * freq / hs), 100.0);
         }
     }
