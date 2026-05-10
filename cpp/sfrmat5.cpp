@@ -810,7 +810,8 @@ template <typename T> const std::array<T, 3>& SfrMat5<T>::weight() const {
 }
 
 template <typename T> void SfrMat5<T>::set_npol(int npol) {
-    npol_ = npol;
+    // Ensure npol is within valid range [1, 5]
+    npol_ = std::clamp(npol, 1, 5);
 }
 
 template <typename T> int SfrMat5<T>::npol() const {
