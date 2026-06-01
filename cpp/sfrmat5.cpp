@@ -14,6 +14,21 @@ namespace sfrmat5 {
 
 namespace {
 
+template <typename T> struct Image {
+    int rows = 0;
+    int cols = 0;
+    int channels = 0;
+    std::vector<Matrix<T>> planes;
+
+    Image() = default;
+    Image(int r, int c, int ch, T value = static_cast<T>(0))
+        : rows(r), cols(c), channels(ch), planes(ch, Matrix<T>(r, c)) {
+        for (int i = 0; i < ch; ++i) {
+            planes[i].setConstant(value);
+        }
+    }
+};
+
 double mean(const std::vector<double>& v) {
     if (v.empty()) {
         return 0.0;
@@ -755,10 +770,28 @@ SfrResult<double> compute_sfr_double(const Image<double>& input, double del, int
     return result;
 }
 
-template <typename T> Image<double> to_double_image(const Image<T>& input) {
-    Image<double> out(input.rows, input.cols, input.channels, 0.0);
-    for (int ch = 0; ch < input.channels; ++ch) {
-        out.planes[ch] = input.planes[ch].template cast<double>();
+template <typename T>
+Image<double> to_double_image(const std::vector<T>& pixels, int width, int height, int channels) {
+    if (width <= 0 || height <= 0 || channels <= 0) {
+        throw std::invalid_argument("SfrMat5::compute requires positive dimensions");
+    }
+
+    const auto expected_size =
+        static_cast<size_t>(width) * static_cast<size_t>(height) * static_cast<size_t>(channels);
+    if (pixels.size() != expected_size) {
+        throw std::invalid_argument("SfrMat5::compute pixel data size does not match dimensions");
+    }
+
+    Image<double> out(height, width, channels, 0.0);
+    const size_t plane_size = static_cast<size_t>(width) * static_cast<size_t>(height);
+    for (int ch = 0; ch < channels; ++ch) {
+        const size_t channel_offset = static_cast<size_t>(ch) * plane_size;
+        for (int row = 0; row < height; ++row) {
+            const size_t row_offset = channel_offset + static_cast<size_t>(row) * width;
+            for (int col = 0; col < width; ++col) {
+                out.planes[ch](row, col) = static_cast<double>(pixels[row_offset + col]);
+            }
+        }
     }
     return out;
 }
@@ -834,8 +867,13 @@ template <typename T> T SfrMat5<T>::del() const {
     return del_;
 }
 
-template <typename T> SfrResult<T> SfrMat5<T>::compute(const Image<T>& input) const {
-    Image<double> img = to_double_image(input);
+template <typename T>
+SfrResult<T> SfrMat5<T>::compute(std::unique_ptr<std::vector<T>> pixels, int width, int height,
+                                 int channels) const {
+    if (!pixels) {
+        throw std::invalid_argument("SfrMat5::compute requires non-null pixel data");
+    }
+    Image<double> img = to_double_image(*pixels, width, height, channels);
     std::array<double, 3> w = {static_cast<double>(weight_[0]), static_cast<double>(weight_[1]),
                                static_cast<double>(weight_[2])};
     SfrResult<double> res = compute_sfr_double(img, static_cast<double>(del_), npol_, wflag_, w);
@@ -844,9 +882,6 @@ template <typename T> SfrResult<T> SfrMat5<T>::compute(const Image<T>& input) co
 
 template class SfrMat5<float>;
 template class SfrMat5<double>;
-
-template struct Image<float>;
-template struct Image<double>;
 
 template struct SfrResult<float>;
 template struct SfrResult<double>;

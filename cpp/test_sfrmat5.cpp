@@ -4,15 +4,37 @@
 #include <cstdint>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <stdexcept>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace {
 
 using Scalar = double;
 
+struct BmpImage {
+    int rows = 0;
+    int cols = 0;
+    int channels = 0;
+    std::vector<sfrmat5::Matrix<Scalar>> planes;
+
+    BmpImage() = default;
+    BmpImage(int r, int c, int ch, Scalar value = static_cast<Scalar>(0))
+        : rows(r), cols(c), channels(ch), planes(ch, sfrmat5::Matrix<Scalar>(r, c)) {
+        for (int i = 0; i < ch; ++i) {
+            planes[i].setConstant(value);
+        }
+    }
+};
+
 bool nearly_zero(double v) {
     return std::abs(v) < 1e-9;
+}
+
+bool nearly_equal(double actual, double expected, double tol) {
+    return std::isfinite(actual) && std::abs(actual - expected) <= tol;
 }
 
 bool check_frequency_axis(const sfrmat5::Matrix<Scalar>& dat) {
@@ -28,6 +50,24 @@ bool check_frequency_axis(const sfrmat5::Matrix<Scalar>& dat) {
         prev = cur;
     }
     return true;
+}
+
+bool check_value(const char* label, double actual, double expected, double tol) {
+    if (nearly_equal(actual, expected, tol)) {
+        return true;
+    }
+    std::cerr << label << " mismatch: expected " << expected << ", got " << actual
+              << ", tolerance " << tol << "\n";
+    return false;
+}
+
+bool check_matrix_value(const char* label, const sfrmat5::Matrix<Scalar>& m, int row, int col,
+                        double expected, double tol) {
+    if (row >= m.rows() || col >= m.cols()) {
+        std::cerr << label << " index out of range at (" << row << ", " << col << ")\n";
+        return false;
+    }
+    return check_value(label, m(row, col), expected, tol);
 }
 
 uint16_t read_u16(std::ifstream& in) {
@@ -48,7 +88,7 @@ int32_t read_i32(std::ifstream& in) {
     return static_cast<int32_t>(read_u32(in));
 }
 
-sfrmat5::Image<Scalar> load_bmp(const std::string& path) {
+BmpImage load_bmp(const std::string& path) {
     std::ifstream in(path, std::ios::binary);
     if (!in) {
         throw std::runtime_error("Failed to open BMP");
@@ -103,7 +143,7 @@ sfrmat5::Image<Scalar> load_bmp(const std::string& path) {
     int rows = height;
     int cols = width;
     int channels = (bitCount == 24) ? 3 : 1;
-    sfrmat5::Image<Scalar> img(rows, cols, channels, static_cast<Scalar>(0));
+    BmpImage img(rows, cols, channels, static_cast<Scalar>(0));
 
     int row_bytes = ((bitCount * cols + 31) / 32) * 4;
     std::vector<uint8_t> row(row_bytes, 0);
@@ -132,16 +172,39 @@ sfrmat5::Image<Scalar> load_bmp(const std::string& path) {
     return img;
 }
 
+std::vector<Scalar> extract_planar_pixels(const BmpImage& img) {
+    std::vector<Scalar> pixels(static_cast<size_t>(img.rows) * static_cast<size_t>(img.cols) *
+                               static_cast<size_t>(img.channels));
+    const size_t plane_size = static_cast<size_t>(img.rows) * static_cast<size_t>(img.cols);
+    for (int ch = 0; ch < img.channels; ++ch) {
+        const size_t channel_offset = static_cast<size_t>(ch) * plane_size;
+        for (int row = 0; row < img.rows; ++row) {
+            const size_t row_offset = channel_offset + static_cast<size_t>(row) * img.cols;
+            for (int col = 0; col < img.cols; ++col) {
+                pixels[row_offset + col] = img.planes[ch](row, col);
+            }
+        }
+    }
+    return pixels;
+}
+
 } // namespace
 
 int main() {
     std::string path = "Example_Images/Test_edge1.bmp";
-    sfrmat5::Image<Scalar> img = load_bmp(path);
+    BmpImage img = load_bmp(path);
+    auto pixels = std::make_unique<std::vector<Scalar>>(extract_planar_pixels(img));
     sfrmat5::SfrMat5<Scalar> sfr;
-    sfrmat5::SfrResult<Scalar> result = sfr.compute(img);
+    sfrmat5::SfrResult<Scalar> result =
+        sfr.compute(std::move(pixels), img.cols, img.rows, img.channels);
 
     if (result.dat.rows() == 0 || result.dat.cols() < 2) {
         std::cerr << "SFR data missing\n";
+        return 1;
+    }
+    if (result.dat.rows() != 125 || result.dat.cols() != 5) {
+        std::cerr << "Unexpected SFR data dimensions: " << result.dat.rows() << "x"
+                  << result.dat.cols() << "\n";
         return 1;
     }
     if (!check_frequency_axis(result.dat)) {
@@ -154,6 +217,40 @@ int main() {
     }
     if (result.e.rows() == 0 || result.e.cols() == 0) {
         std::cerr << "Sampling efficiency missing\n";
+        return 1;
+    }
+    if (result.e.rows() != 2 || result.e.cols() != 4) {
+        std::cerr << "Unexpected sampling efficiency dimensions: " << result.e.rows() << "x"
+                  << result.e.cols() << "\n";
+        return 1;
+    }
+
+    const double value_tol = 1e-5;
+    const double freq_tol = 1e-6;
+    bool numerical_ok = true;
+    numerical_ok &= check_value("SFR50", result.sfr50, 0.269805, value_tol);
+    numerical_ok &= check_value("del2", result.del2, 0.248855, value_tol);
+
+    numerical_ok &= check_matrix_value("sampling efficiency 10% R", result.e, 0, 0, 85.0, 0.0);
+    numerical_ok &= check_matrix_value("sampling efficiency 10% G", result.e, 0, 1, 85.0, 0.0);
+    numerical_ok &= check_matrix_value("sampling efficiency 10% B", result.e, 0, 2, 86.0, 0.0);
+    numerical_ok &= check_matrix_value("sampling efficiency 10% L", result.e, 0, 3, 85.0, 0.0);
+    numerical_ok &= check_matrix_value("sampling efficiency 50% R", result.e, 1, 0, 55.0, 0.0);
+    numerical_ok &= check_matrix_value("sampling efficiency 50% G", result.e, 1, 1, 55.0, 0.0);
+    numerical_ok &= check_matrix_value("sampling efficiency 50% B", result.e, 1, 2, 56.0, 0.0);
+    numerical_ok &= check_matrix_value("sampling efficiency 50% L", result.e, 1, 3, 55.0, 0.0);
+
+    numerical_ok &= check_matrix_value("dat[0,0]", result.dat, 0, 0, 0.0, freq_tol);
+    numerical_ok &= check_matrix_value("dat[0,1]", result.dat, 0, 1, 1.0, value_tol);
+    numerical_ok &= check_matrix_value("dat[1,0]", result.dat, 1, 0, 0.00810162, freq_tol);
+    numerical_ok &= check_matrix_value("dat[1,4]", result.dat, 1, 4, 0.994307, value_tol);
+    numerical_ok &= check_matrix_value("dat[33,0]", result.dat, 33, 0, 0.267353, freq_tol);
+    numerical_ok &= check_matrix_value("dat[33,4]", result.dat, 33, 4, 0.511463, value_tol);
+    numerical_ok &= check_matrix_value("dat[61,0]", result.dat, 61, 0, 0.494199, freq_tol);
+    numerical_ok &= check_matrix_value("dat[61,4]", result.dat, 61, 4, 0.0146672, value_tol);
+    numerical_ok &= check_matrix_value("dat[124,0]", result.dat, 124, 0, 1.0046, value_tol);
+    numerical_ok &= check_matrix_value("dat[124,4]", result.dat, 124, 4, 0.0797956, value_tol);
+    if (!numerical_ok) {
         return 1;
     }
 
