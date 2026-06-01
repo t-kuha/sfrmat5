@@ -1,27 +1,27 @@
 #include "sfrmat5.h"
 
 #include <cmath>
-#include <cstdint>
-#include <fstream>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
 #include <string>
-#include <utility>
 #include <vector>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 namespace {
 
 using Scalar = double;
 
-struct BmpImage {
+struct Image {
     int rows = 0;
     int cols = 0;
     int channels = 0;
     std::vector<sfrmat5::Matrix<Scalar>> planes;
 
-    BmpImage() = default;
-    BmpImage(int r, int c, int ch, Scalar value = static_cast<Scalar>(0))
+    Image() = default;
+    Image(int r, int c, int ch, Scalar value = static_cast<Scalar>(0))
         : rows(r), cols(c), channels(ch), planes(ch, sfrmat5::Matrix<Scalar>(r, c)) {
         for (int i = 0; i < ch; ++i) {
             planes[i].setConstant(value);
@@ -70,109 +70,36 @@ bool check_matrix_value(const char* label, const sfrmat5::Matrix<Scalar>& m, int
     return check_value(label, m(row, col), expected, tol);
 }
 
-uint16_t read_u16(std::ifstream& in) {
-    uint8_t b0 = 0;
-    uint8_t b1 = 0;
-    in.read(reinterpret_cast<char*>(&b0), 1);
-    in.read(reinterpret_cast<char*>(&b1), 1);
-    return static_cast<uint16_t>(b0 | (b1 << 8));
-}
-
-uint32_t read_u32(std::ifstream& in) {
-    uint8_t b[4] = {0, 0, 0, 0};
-    in.read(reinterpret_cast<char*>(b), 4);
-    return static_cast<uint32_t>(b[0] | (b[1] << 8) | (b[2] << 16) | (b[3] << 24));
-}
-
-int32_t read_i32(std::ifstream& in) {
-    return static_cast<int32_t>(read_u32(in));
-}
-
-BmpImage load_bmp(const std::string& path) {
-    std::ifstream in(path, std::ios::binary);
-    if (!in) {
-        throw std::runtime_error("Failed to open BMP");
+Image load_image(const std::string& path) {
+    int width = 0;
+    int height = 0;
+    int source_channels = 0;
+    if (!stbi_info(path.c_str(), &width, &height, &source_channels)) {
+        throw std::runtime_error(std::string("Failed to inspect image: ") + stbi_failure_reason());
     }
 
-    uint16_t bfType = read_u16(in);
-    if (bfType != 0x4D42) {
-        throw std::runtime_error("Not a BMP file");
-    }
-    uint32_t bfSize = read_u32(in);
-    (void)bfSize;
-    read_u16(in);
-    read_u16(in);
-    uint32_t bfOffBits = read_u32(in);
-
-    uint32_t biSize = read_u32(in);
-    if (biSize < 40) {
-        throw std::runtime_error("Unsupported BMP header");
-    }
-    int32_t width = read_i32(in);
-    int32_t height = read_i32(in);
-    uint16_t planes = read_u16(in);
-    uint16_t bitCount = read_u16(in);
-    uint32_t compression = read_u32(in);
-    read_u32(in);
-    read_i32(in);
-    read_i32(in);
-    read_u32(in);
-    read_u32(in);
-
-    if (planes != 1 || (bitCount != 8 && bitCount != 24) || compression != 0) {
-        throw std::runtime_error("Unsupported BMP format");
+    const int output_channels = (source_channels == 1) ? 1 : 3;
+    std::unique_ptr<unsigned char, decltype(&stbi_image_free)> data(
+        stbi_load(path.c_str(), &width, &height, &source_channels, output_channels),
+        stbi_image_free);
+    if (!data) {
+        throw std::runtime_error(std::string("Failed to load image: ") + stbi_failure_reason());
     }
 
-    if (biSize > 40) {
-        in.seekg(static_cast<std::streamoff>(biSize - 40), std::ios::cur);
-    }
-
-    bool bottom_up = true;
-    if (height < 0) {
-        bottom_up = false;
-        height = -height;
-    }
-
-    if (bitCount == 8) {
-        int palette_entries = static_cast<int>((bfOffBits - 54) / 4);
-        in.seekg(54 + palette_entries * 4, std::ios::beg);
-    } else {
-        in.seekg(static_cast<std::streamoff>(bfOffBits), std::ios::beg);
-    }
-
-    int rows = height;
-    int cols = width;
-    int channels = (bitCount == 24) ? 3 : 1;
-    BmpImage img(rows, cols, channels, static_cast<Scalar>(0));
-
-    int row_bytes = ((bitCount * cols + 31) / 32) * 4;
-    std::vector<uint8_t> row(row_bytes, 0);
-    for (int r = 0; r < rows; ++r) {
-        int dst_row = bottom_up ? (rows - 1 - r) : r;
-        in.read(reinterpret_cast<char*>(row.data()), row_bytes);
-        if (!in) {
-            throw std::runtime_error("BMP read failed");
-        }
-        if (bitCount == 24) {
-            for (int c = 0; c < cols; ++c) {
-                int idx = c * 3;
-                uint8_t b = row[idx];
-                uint8_t g = row[idx + 1];
-                uint8_t rch = row[idx + 2];
-                img.planes[0](dst_row, c) = static_cast<Scalar>(rch);
-                img.planes[1](dst_row, c) = static_cast<Scalar>(g);
-                img.planes[2](dst_row, c) = static_cast<Scalar>(b);
-            }
-        } else {
-            for (int c = 0; c < cols; ++c) {
-                img.planes[0](dst_row, c) = static_cast<Scalar>(row[c]);
+    Image img(height, width, output_channels, static_cast<Scalar>(0));
+    for (int row = 0; row < img.rows; ++row) {
+        for (int col = 0; col < img.cols; ++col) {
+            const size_t pixel_offset =
+                (static_cast<size_t>(row) * img.cols + static_cast<size_t>(col)) * img.channels;
+            for (int ch = 0; ch < img.channels; ++ch) {
+                img.planes[ch](row, col) = static_cast<Scalar>(data.get()[pixel_offset + ch]);
             }
         }
     }
     return img;
 }
 
-std::vector<Scalar> extract_planar_pixels(const BmpImage& img) {
+std::vector<Scalar> extract_planar_pixels(const Image& img) {
     std::vector<Scalar> pixels(static_cast<size_t>(img.rows) * static_cast<size_t>(img.cols) *
                                static_cast<size_t>(img.channels));
     const size_t plane_size = static_cast<size_t>(img.rows) * static_cast<size_t>(img.cols);
@@ -192,7 +119,7 @@ std::vector<Scalar> extract_planar_pixels(const BmpImage& img) {
 
 int main() {
     std::string path = "Example_Images/Test_edge1.bmp";
-    BmpImage img = load_bmp(path);
+    Image img = load_image(path);
     auto pixels = std::make_unique<std::vector<Scalar>>(extract_planar_pixels(img));
     sfrmat5::SfrMat5<Scalar> sfr;
     sfrmat5::SfrResult<Scalar> result =
