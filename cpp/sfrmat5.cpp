@@ -6,7 +6,6 @@
 #include <cmath>
 #include <complex>
 #include <limits>
-#include <numeric>
 #include <stdexcept>
 #include <vector>
 
@@ -29,24 +28,32 @@ template <typename T> struct Image {
     }
 };
 
-double mean(const std::vector<double>& v) {
-    if (v.empty()) {
-        return 0.0;
-    }
-    double sum = std::accumulate(v.begin(), v.end(), 0.0);
-    return sum / static_cast<double>(v.size());
-}
+struct MeanStddev {
+    double mean = 0.0;
+    double stddev = 0.0;
+};
 
-double stddev(const std::vector<double>& v, double m) {
-    if (v.size() < 2) {
-        return 0.0;
+MeanStddev mean_stddev(const std::vector<double>& v) {
+    if (v.empty()) {
+        return {};
     }
-    double acc = 0.0;
+
+    double sum = 0.0;
+    double sum_squares = 0.0;
     for (double x : v) {
-        double d = x - m;
-        acc += d * d;
+        sum += x;
+        sum_squares += x * x;
     }
-    return std::sqrt(acc / static_cast<double>(v.size() - 1));
+
+    MeanStddev stats;
+    stats.mean = sum / static_cast<double>(v.size());
+    if (v.size() > 1) {
+        double sum_squared_deviations =
+            sum_squares - static_cast<double>(v.size()) * stats.mean * stats.mean;
+        stats.stddev = std::sqrt(std::max(0.0, sum_squared_deviations) /
+                                 static_cast<double>(v.size() - 1));
+    }
+    return stats;
 }
 
 double nchoosek(int n, int k) {
@@ -66,8 +73,9 @@ double nchoosek(int n, int k) {
 
 std::vector<double> polyfit_convert(const std::vector<double>& p2, const std::vector<double>& x) {
     int n = static_cast<int>(p2.size()) - 1;
-    double m = mean(x);
-    double s = stddev(x, m);
+    MeanStddev stats = mean_stddev(x);
+    double m = stats.mean;
+    double s = stats.stddev;
     if (s == 0.0) {
         s = 1.0;
     }
@@ -88,8 +96,9 @@ std::vector<double> polyfit_scaled(const std::vector<double>& x, const std::vect
     }
     int n = static_cast<int>(x.size());
     int m = degree + 1;
-    double mx = mean(x);
-    double sx = stddev(x, mx);
+    MeanStddev stats = mean_stddev(x);
+    double mx = stats.mean;
+    double sx = stats.stddev;
     if (sx == 0.0) {
         sx = 1.0;
     }
@@ -524,7 +533,7 @@ void rsquare(const std::vector<double>& y, const std::vector<double>& f, double&
             ff.push_back(f[i]);
         }
     }
-    double mean_y = mean(yy);
+    double mean_y = mean_stddev(yy).mean;
     double ss_res = 0.0;
     double ss_tot = 0.0;
     for (size_t i = 0; i < yy.size(); ++i) {
