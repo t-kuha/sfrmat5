@@ -19,7 +19,10 @@ template <typename T> struct Image {
     int channels = 0;
     std::vector<Matrix<T>> planes;
 
+    /// Constructs an empty image container.
     Image() = default;
+
+    /// Constructs an image with channel planes initialized to a constant value.
     Image(int r, int c, int ch, T value = static_cast<T>(0))
         : rows(r), cols(c), channels(ch), planes(ch, Matrix<T>(r, c)) {
         for (int i = 0; i < ch; ++i) {
@@ -33,6 +36,7 @@ struct MeanStddev {
     double stddev = 0.0;
 };
 
+/// Computes mean and sample standard deviation in one pass over the vector.
 MeanStddev mean_stddev(const std::vector<double>& v) {
     if (v.empty()) {
         return {};
@@ -56,6 +60,7 @@ MeanStddev mean_stddev(const std::vector<double>& v) {
     return stats;
 }
 
+/// Returns the binomial coefficient n choose k as a double.
 double nchoosek(int n, int k) {
     if (k < 0 || k > n) {
         return 0.0;
@@ -71,6 +76,7 @@ double nchoosek(int n, int k) {
     return res;
 }
 
+/// Converts polynomial coefficients from scaled coordinates back to original x coordinates.
 std::vector<double> polyfit_convert(const std::vector<double>& p2, const std::vector<double>& x) {
     int n = static_cast<int>(p2.size()) - 1;
     MeanStddev stats = mean_stddev(x);
@@ -89,6 +95,7 @@ std::vector<double> polyfit_convert(const std::vector<double>& p2, const std::ve
     return retval;
 }
 
+/// Fits a polynomial after scaling x by its mean and sample standard deviation.
 std::vector<double> polyfit_scaled(const std::vector<double>& x, const std::vector<double>& y,
                                    int degree) {
     if (x.size() != y.size()) {
@@ -123,6 +130,7 @@ std::vector<double> polyfit_scaled(const std::vector<double>& x, const std::vect
     return polyfit_convert(coeffs, x);
 }
 
+/// Evaluates a polynomial using Horner's method.
 double polyval(const std::vector<double>& p, double x) {
     double y = 0.0;
     for (double coeff : p) {
@@ -131,6 +139,7 @@ double polyval(const std::vector<double>& p, double x) {
     return y;
 }
 
+/// Convolves two vectors and returns the centered output with the input length.
 std::vector<double> conv_same(const std::vector<double>& x, const std::vector<double>& h) {
     int n = static_cast<int>(x.size());
     int m = static_cast<int>(h.size());
@@ -148,6 +157,7 @@ std::vector<double> conv_same(const std::vector<double>& x, const std::vector<do
     return same;
 }
 
+/// Applies the finite-difference derivative filter to each matrix row.
 Matrix<double> deriv1(const Matrix<double>& a, const std::vector<double>& fil) {
     Matrix<double> b(a.rows(), a.cols());
     for (int r = 0; r < a.rows(); ++r) {
@@ -165,6 +175,7 @@ Matrix<double> deriv1(const Matrix<double>& a, const std::vector<double>& fil) {
     return b;
 }
 
+/// Computes the intensity-weighted centroid location for a row profile.
 double centroid(const std::vector<double>& x) {
     if (x.empty()) {
         return 0.0;
@@ -180,6 +191,7 @@ double centroid(const std::vector<double>& x) {
     return loc / sum;
 }
 
+/// Recenters a vector around the requested center location.
 std::vector<double> cent(const std::vector<double>& a, double center) {
     int n = static_cast<int>(a.size());
     std::vector<double> b(n, 0.0);
@@ -199,6 +211,7 @@ std::vector<double> cent(const std::vector<double>& a, double center) {
     return b;
 }
 
+/// Rotates an image 90 degrees counterclockwise.
 Image<double> rotate90(const Image<double>& in) {
     Image<double> out(in.cols, in.rows, in.channels, 0.0);
     for (int ch = 0; ch < in.channels; ++ch) {
@@ -208,6 +221,7 @@ Image<double> rotate90(const Image<double>& in) {
     return out;
 }
 
+/// Rotates the image when the detected edge is closer to horizontal than vertical.
 Image<double> rotatev2(const Image<double>& input) {
     Image<double> result = input;
     int nlin = input.rows;
@@ -235,6 +249,7 @@ Image<double> rotatev2(const Image<double>& input) {
     return result;
 }
 
+/// Builds a Hamming window centered at the requested midpoint.
 Eigen::VectorXd ahamming(int n, double mid) {
     Eigen::VectorXd data(n);
     if (n == 0) {
@@ -251,6 +266,7 @@ Eigen::VectorXd ahamming(int n, double mid) {
     return data;
 }
 
+/// Builds a symmetric Tukey window.
 Eigen::VectorXd tukey(int n, double alpha) {
     if (n == 1) {
         Eigen::VectorXd w(1);
@@ -276,6 +292,7 @@ Eigen::VectorXd tukey(int n, double alpha) {
     return out;
 }
 
+/// Builds a Tukey window shifted to the requested midpoint.
 Eigen::VectorXd tukey2(int n, double alpha, double mid) {
     if (n < 3) {
         return Eigen::VectorXd::Ones(n);
@@ -294,6 +311,7 @@ Eigen::VectorXd tukey2(int n, double alpha, double mid) {
     return w.segment(start, n);
 }
 
+/// Computes correction factors for the derivative FIR frequency response.
 std::vector<double> fir2fix(int n, int m) {
     std::vector<double> correct(n, 1.0);
     m = m - 1;
@@ -312,6 +330,7 @@ std::vector<double> fir2fix(int n, int m) {
     return correct;
 }
 
+/// Fits the edge location data with a polynomial of the requested order.
 std::vector<double> findedge2(const std::vector<double>& cent, int nlin, int nn) {
     std::vector<double> index(nlin, 0.0);
     for (int i = 0; i < nlin; ++i) {
@@ -325,6 +344,7 @@ struct ProjectResult {
     int status = 0;
 };
 
+/// Projects a slanted edge image into a supersampled edge profile.
 ProjectResult project2(const Matrix<double>& bb, const std::vector<double>& fitme, int fac) {
     int nlin = bb.rows();
     int npix = bb.cols();
@@ -392,6 +412,7 @@ ProjectResult project2(const Matrix<double>& bb, const std::vector<double>& fitm
     return result;
 }
 
+/// Computes the discrete Fourier transform, using radix-2 recursion when possible.
 std::vector<std::complex<double>> fft(const std::vector<std::complex<double>>& x) {
     int n = static_cast<int>(x.size());
     if (n == 1) {
@@ -427,6 +448,7 @@ std::vector<std::complex<double>> fft(const std::vector<std::complex<double>>& x
     return out;
 }
 
+/// Finds the spatial frequency where each SFR channel crosses the requested value.
 std::vector<double> findfreq(const Matrix<double>& dat, double val, int imax, int fflag) {
     int nc = dat.cols() - 1;
     std::vector<double> freqval(nc, 0.0);
@@ -486,6 +508,7 @@ std::vector<double> findfreq(const Matrix<double>& dat, double val, int imax, in
     return out;
 }
 
+/// Computes sampling efficiency percentages for requested SFR levels.
 Matrix<double> sampeff(const Matrix<double>& dat, const std::vector<double>& val, double del,
                        int fflag) {
     if (dat.rows() == 0 || dat.cols() < 2) {
@@ -519,6 +542,7 @@ Matrix<double> sampeff(const Matrix<double>& dat, const std::vector<double>& val
     return eff;
 }
 
+/// Computes coefficient of determination and root mean square error.
 void rsquare(const std::vector<double>& y, const std::vector<double>& f, double& r2, double& rmse) {
     if (y.size() != f.size() || y.empty()) {
         r2 = 0.0;
@@ -546,6 +570,7 @@ void rsquare(const std::vector<double>& y, const std::vector<double>& f, double&
     rmse = std::sqrt(ss_res / static_cast<double>(yy.size()));
 }
 
+/// Runs the double-precision SFR pipeline and returns raw double outputs.
 SfrResult<double> compute_sfr_double(const Image<double>& input, double del, int npol,
                                      WindowFlag wflag, const std::array<double, 3>& weight) {
     if (input.rows == 0 || input.cols == 0) {
@@ -779,6 +804,7 @@ SfrResult<double> compute_sfr_double(const Image<double>& input, double del, int
     return result;
 }
 
+/// Converts planar input pixels to the internal double-precision image representation.
 template <typename T>
 Image<double> to_double_image(const std::vector<T>& pixels, int width, int height, int channels) {
     if (width <= 0 || height <= 0 || channels <= 0) {
@@ -805,6 +831,7 @@ Image<double> to_double_image(const std::vector<T>& pixels, int width, int heigh
     return out;
 }
 
+/// Casts a double-precision matrix to the requested scalar type.
 template <typename T> Matrix<T> cast_matrix(const Matrix<double>& input) {
     Matrix<T> out(input.rows(), input.cols());
     for (int r = 0; r < input.rows(); ++r) {
@@ -815,6 +842,7 @@ template <typename T> Matrix<T> cast_matrix(const Matrix<double>& input) {
     return out;
 }
 
+/// Casts a double-precision vector to the requested scalar type.
 template <typename T> std::vector<T> cast_vector(const std::vector<double>& input) {
     std::vector<T> out(input.size(), static_cast<T>(0));
     for (size_t i = 0; i < input.size(); ++i) {
@@ -823,6 +851,7 @@ template <typename T> std::vector<T> cast_vector(const std::vector<double>& inpu
     return out;
 }
 
+/// Casts a double-precision SFR result to the requested scalar type.
 template <typename T> SfrResult<T> cast_result(const SfrResult<double>& input) {
     SfrResult<T> out;
     out.status = input.status;
@@ -838,44 +867,54 @@ template <typename T> SfrResult<T> cast_result(const SfrResult<double>& input) {
 
 } // namespace
 
+/// Constructs an analyzer with default luminance weights, polynomial order, window, and sampling.
 template <typename T>
 SfrMat5<T>::SfrMat5()
     : weight_{static_cast<T>(0.213), static_cast<T>(0.715), static_cast<T>(0.072)}, npol_(5),
       wflag_(WindowFlag::Tukey), del_(static_cast<T>(1)) {}
 
+/// Sets RGB weights used to compute luminance.
 template <typename T> void SfrMat5<T>::set_weight(const std::array<T, 3>& weight) {
     weight_ = weight;
 }
 
+/// Returns RGB weights used to compute luminance.
 template <typename T> const std::array<T, 3>& SfrMat5<T>::weight() const {
     return weight_;
 }
 
+/// Sets polynomial order for edge fit, clamped to [1, 5].
 template <typename T> void SfrMat5<T>::set_npol(int npol) {
     // Ensure npol is within valid range [1, 5]
     npol_ = std::clamp(npol, 1, 5);
 }
 
+/// Returns polynomial order for edge fit.
 template <typename T> int SfrMat5<T>::npol() const {
     return npol_;
 }
 
+/// Sets window selection for edge and LSF processing.
 template <typename T> void SfrMat5<T>::set_wflag(WindowFlag wflag) {
     wflag_ = wflag;
 }
 
+/// Returns window selection for edge and LSF processing.
 template <typename T> WindowFlag SfrMat5<T>::wflag() const {
     return wflag_;
 }
 
+/// Sets sampling interval in millimeters, or DPI when greater than 1.
 template <typename T> void SfrMat5<T>::set_del(T del) {
     del_ = del;
 }
 
+/// Returns sampling interval setting.
 template <typename T> T SfrMat5<T>::del() const {
     return del_;
 }
 
+/// Computes SFR outputs from planar pixels.
 template <typename T>
 SfrResult<T> SfrMat5<T>::compute(std::unique_ptr<std::vector<T>> pixels, int width, int height,
                                  int channels) const {

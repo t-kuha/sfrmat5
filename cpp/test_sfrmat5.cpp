@@ -20,7 +20,10 @@ struct Image {
     int channels = 0;
     std::vector<sfrmat5::Matrix<Scalar>> planes;
 
+    /// Constructs an empty test image container.
     Image() = default;
+
+    /// Constructs a test image with channel planes initialized to a constant value.
     Image(int r, int c, int ch, Scalar value = static_cast<Scalar>(0))
         : rows(r), cols(c), channels(ch), planes(ch, sfrmat5::Matrix<Scalar>(r, c)) {
         for (int i = 0; i < ch; ++i) {
@@ -29,14 +32,17 @@ struct Image {
     }
 };
 
+/// Returns true when a value is numerically close to zero.
 bool nearly_zero(double v) {
     return std::abs(v) < 1e-9;
 }
 
+/// Returns true when two finite values are within the requested tolerance.
 bool nearly_equal(double actual, double expected, double tol) {
     return std::isfinite(actual) && std::abs(actual - expected) <= tol;
 }
 
+/// Verifies that the first SFR data column is a strictly increasing frequency axis.
 bool check_frequency_axis(const sfrmat5::Matrix<Scalar>& dat) {
     if (dat.rows() < 2 || dat.cols() < 2) {
         return false;
@@ -52,6 +58,7 @@ bool check_frequency_axis(const sfrmat5::Matrix<Scalar>& dat) {
     return true;
 }
 
+/// Checks a scalar value against an expected value and reports failures.
 bool check_value(const char* label, double actual, double expected, double tol) {
     if (nearly_equal(actual, expected, tol)) {
         return true;
@@ -61,6 +68,7 @@ bool check_value(const char* label, double actual, double expected, double tol) 
     return false;
 }
 
+/// Checks one matrix element against an expected value and reports failures.
 bool check_matrix_value(const char* label, const sfrmat5::Matrix<Scalar>& m, int row, int col,
                         double expected, double tol) {
     if (row >= m.rows() || col >= m.cols()) {
@@ -70,6 +78,7 @@ bool check_matrix_value(const char* label, const sfrmat5::Matrix<Scalar>& m, int
     return check_value(label, m(row, col), expected, tol);
 }
 
+/// Loads an image file into planar scalar channels using stb_image.
 Image load_image(const std::string& path) {
     int width = 0;
     int height = 0;
@@ -99,6 +108,7 @@ Image load_image(const std::string& path) {
     return img;
 }
 
+/// Flattens image planes into the public SfrMat5 planar pixel layout.
 std::vector<Scalar> extract_planar_pixels(const Image& img) {
     std::vector<Scalar> pixels(static_cast<size_t>(img.rows) * static_cast<size_t>(img.cols) *
                                static_cast<size_t>(img.channels));
@@ -117,6 +127,7 @@ std::vector<Scalar> extract_planar_pixels(const Image& img) {
 
 } // namespace
 
+/// Runs the regression test against the example edge image.
 int main() {
     std::string path = "Example_Images/Test_edge1.bmp";
     Image img = load_image(path);

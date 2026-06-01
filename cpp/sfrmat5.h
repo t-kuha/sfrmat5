@@ -10,10 +10,12 @@ namespace sfrmat5 {
 
 enum class WindowFlag { Tukey = 0, Hamming = 1 };
 
+/// Row-major dynamic Eigen matrix used by the SFR API.
 template <typename T>
 using Matrix = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 
-template <typename T> struct SfrResult { // Outputs from slanted-edge SFR analysis.
+/// Stores outputs from slanted-edge SFR analysis.
+template <typename T> struct SfrResult {
     int status = 0;                      // 0 on success.
     Matrix<T> dat;                       // [frequency, mtf...] for each color/luminance.
     Matrix<T> e;                         // sampling efficiency (nval x ncol).
@@ -24,28 +26,37 @@ template <typename T> struct SfrResult { // Outputs from slanted-edge SFR analys
     T del2 = static_cast<T>(0);          // sampling interval for ESF.
 };
 
-// ISO 12233 slanted-edge SFR analysis.
+/// Performs ISO 12233 slanted-edge SFR analysis on planar pixel data.
 template <typename T> class SfrMat5 {
   public:
+    /// Constructs an analyzer with MATLAB-compatible defaults.
     SfrMat5();
 
-    // RGB weights used to compute luminance (default: [0.213, 0.715, 0.072]).
+    /// Sets RGB weights used to compute luminance.
     void set_weight(const std::array<T, 3>& weight);
+
+    /// Returns RGB weights used to compute luminance.
     const std::array<T, 3>& weight() const;
 
-    // Polynomial order for edge fit [1..5], default 5.
+    /// Sets polynomial order for edge fit, clamped to [1, 5].
     void set_npol(int npol);
+
+    /// Returns polynomial order for edge fit.
     int npol() const;
 
-    // Window selection for edge/LSF processing.
+    /// Sets window selection for edge and LSF processing.
     void set_wflag(WindowFlag wflag);
+
+    /// Returns window selection for edge and LSF processing.
     WindowFlag wflag() const;
 
-    // Sampling interval (mm or pixels/inch); if >1, treated as DPI.
+    /// Sets sampling interval in millimeters, or DPI when greater than 1.
     void set_del(T del);
+
+    /// Returns sampling interval setting.
     T del() const;
 
-    // Compute SFR outputs for planar pixel data: channel 0 pixels, then channel 1, etc.
+    /// Computes SFR outputs from planar pixels: all channel 0 pixels, then channel 1, etc.
     SfrResult<T> compute(std::unique_ptr<std::vector<T>> pixels, int width, int height,
                          int channels) const;
 
