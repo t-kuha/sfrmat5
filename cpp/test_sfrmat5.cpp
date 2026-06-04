@@ -28,8 +28,8 @@ struct Image {
         : rows(r), cols(c), channels(ch) {
         planes.reserve(ch);
         for (int i = 0; i < ch; ++i) {
-            planes.emplace_back(r, c);
-            planes.back().setTo(value);
+            planes.emplace_back(static_cast<size_t>(r),
+                                std::vector<Scalar>(static_cast<size_t>(c), value));
         }
     }
 };
@@ -44,14 +44,24 @@ bool nearly_equal(double actual, double expected, double tol) {
     return std::isfinite(actual) && std::abs(actual - expected) <= tol;
 }
 
+/// Returns the row count of the public nested-vector matrix.
+template <typename T> int matrix_rows(const sfrmat5::Matrix<T>& m) {
+    return static_cast<int>(m.size());
+}
+
+/// Returns the column count of the public nested-vector matrix.
+template <typename T> int matrix_cols(const sfrmat5::Matrix<T>& m) {
+    return m.empty() ? 0 : static_cast<int>(m.front().size());
+}
+
 /// Verifies that the first SFR data column is a strictly increasing frequency axis.
 bool check_frequency_axis(const sfrmat5::Matrix<Scalar>& dat) {
-    if (dat.rows < 2 || dat.cols < 2) {
+    if (matrix_rows(dat) < 2 || matrix_cols(dat) < 2) {
         return false;
     }
-    double prev = dat(0, 0);
-    for (int i = 1; i < dat.rows; ++i) {
-        double cur = dat(i, 0);
+    double prev = dat[0][0];
+    for (int i = 1; i < matrix_rows(dat); ++i) {
+        double cur = dat[static_cast<size_t>(i)][0];
         if (!(cur > prev)) {
             return false;
         }
@@ -73,11 +83,11 @@ bool check_value(const char* label, double actual, double expected, double tol) 
 /// Checks one matrix element against an expected value and reports failures.
 bool check_matrix_value(const char* label, const sfrmat5::Matrix<Scalar>& m, int row, int col,
                         double expected, double tol) {
-    if (row >= m.rows || col >= m.cols) {
+    if (row >= matrix_rows(m) || col >= matrix_cols(m)) {
         std::cerr << label << " index out of range at (" << row << ", " << col << ")\n";
         return false;
     }
-    return check_value(label, m(row, col), expected, tol);
+    return check_value(label, m[static_cast<size_t>(row)][static_cast<size_t>(col)], expected, tol);
 }
 
 /// Loads an image file into planar scalar channels using stb_image.
@@ -103,7 +113,8 @@ Image load_image(const std::string& path) {
             const size_t pixel_offset =
                 (static_cast<size_t>(row) * img.cols + static_cast<size_t>(col)) * img.channels;
             for (int ch = 0; ch < img.channels; ++ch) {
-                img.planes[ch](row, col) = static_cast<Scalar>(data.get()[pixel_offset + ch]);
+                img.planes[ch][static_cast<size_t>(row)][static_cast<size_t>(col)] =
+                    static_cast<Scalar>(data.get()[pixel_offset + ch]);
             }
         }
     }
@@ -120,7 +131,8 @@ std::vector<Scalar> extract_planar_pixels(const Image& img) {
         for (int row = 0; row < img.rows; ++row) {
             const size_t row_offset = channel_offset + static_cast<size_t>(row) * img.cols;
             for (int col = 0; col < img.cols; ++col) {
-                pixels[row_offset + col] = img.planes[ch](row, col);
+                pixels[row_offset + col] =
+                    img.planes[ch][static_cast<size_t>(row)][static_cast<size_t>(col)];
             }
         }
     }
@@ -138,13 +150,13 @@ int main() {
     sfrmat5::SfrResult<Scalar> result =
         sfr.compute(std::move(pixels), img.cols, img.rows, img.channels);
 
-    if (result.dat.rows == 0 || result.dat.cols < 2) {
+    if (matrix_rows(result.dat) == 0 || matrix_cols(result.dat) < 2) {
         std::cerr << "SFR data missing\n";
         return 1;
     }
-    if (result.dat.rows != 125 || result.dat.cols != 5) {
-        std::cerr << "Unexpected SFR data dimensions: " << result.dat.rows << "x"
-                  << result.dat.cols << "\n";
+    if (matrix_rows(result.dat) != 125 || matrix_cols(result.dat) != 5) {
+        std::cerr << "Unexpected SFR data dimensions: " << matrix_rows(result.dat) << "x"
+                  << matrix_cols(result.dat) << "\n";
         return 1;
     }
     if (!check_frequency_axis(result.dat)) {
@@ -155,13 +167,13 @@ int main() {
         std::cerr << "SFR50 invalid\n";
         return 1;
     }
-    if (result.e.rows == 0 || result.e.cols == 0) {
+    if (matrix_rows(result.e) == 0 || matrix_cols(result.e) == 0) {
         std::cerr << "Sampling efficiency missing\n";
         return 1;
     }
-    if (result.e.rows != 2 || result.e.cols != 4) {
-        std::cerr << "Unexpected sampling efficiency dimensions: " << result.e.rows << "x"
-                  << result.e.cols << "\n";
+    if (matrix_rows(result.e) != 2 || matrix_cols(result.e) != 4) {
+        std::cerr << "Unexpected sampling efficiency dimensions: " << matrix_rows(result.e) << "x"
+                  << matrix_cols(result.e) << "\n";
         return 1;
     }
 
@@ -196,21 +208,21 @@ int main() {
 
     std::cout << "sfrmat5 basic test passed\n";
     std::cout << "SFR50: " << result.sfr50 << "\n";
-    if (result.e.rows > 0 && result.e.cols > 0) {
+    if (matrix_rows(result.e) > 0 && matrix_cols(result.e) > 0) {
         std::cout << "Sampling efficiency (10%): ";
-        for (int c = 0; c < result.e.cols; ++c) {
-            std::cout << result.e(0, c);
-            if (c + 1 < result.e.cols) {
+        for (int c = 0; c < matrix_cols(result.e); ++c) {
+            std::cout << result.e[0][static_cast<size_t>(c)];
+            if (c + 1 < matrix_cols(result.e)) {
                 std::cout << ", ";
             }
         }
         std::cout << "\n";
     }
-    std::cout << "First " << result.dat.rows << " SFR rows (freq, mtf...):\n";
-    for (int i = 0; i < result.dat.rows; ++i) {
-        for (int c = 0; c < result.dat.cols; ++c) {
-            std::cout << result.dat(i, c);
-            if (c + 1 < result.dat.cols) {
+    std::cout << "First " << matrix_rows(result.dat) << " SFR rows (freq, mtf...):\n";
+    for (int i = 0; i < matrix_rows(result.dat); ++i) {
+        for (int c = 0; c < matrix_cols(result.dat); ++c) {
+            std::cout << result.dat[static_cast<size_t>(i)][static_cast<size_t>(c)];
+            if (c + 1 < matrix_cols(result.dat)) {
                 std::cout << ", ";
             }
         }

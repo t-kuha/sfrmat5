@@ -4,15 +4,13 @@
 #include <memory>
 #include <vector>
 
-#include <opencv2/core.hpp>
-
 namespace sfrmat5 {
 
 enum class WindowFlag { Tukey = 0, Hamming = 1 };
 
-/// OpenCV matrix used by the SFR API.
+/// Row-major matrix used by the public SFR API.
 template <typename T>
-using Matrix = cv::Mat_<T>;
+using Matrix = std::vector<std::vector<T>>;
 
 /// Stores outputs from slanted-edge SFR analysis.
 template <typename T> struct SfrResult {

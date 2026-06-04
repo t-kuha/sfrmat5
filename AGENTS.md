@@ -35,6 +35,6 @@ The test prints SFR50, sampling efficiency, and the first rows of SFR data.
 - The C++ API is templated (`SfrMat5<T>`), with explicit instantiations for `float` and `double`.
 - Use the instance accessors to set `weight`, `npol`, `wflag`, and `del` before calling `compute()`.
 - `wflag` is a top-level enum (`WindowFlag`) with `Tukey` and `Hamming`.
-- OpenCV is used for the public matrix API, least-squares polynomial fitting, and DFT.
+- The public matrix API uses `std::vector<std::vector<T>>`; OpenCV remains an internal dependency for least-squares polynomial fitting and DFT.
 - `compute()` takes ownership of planar pixel data as `std::unique_ptr<std::vector<T>>` plus width, height, and channel count.
 - Image loading/storage is outside the public SFR API; the test uses a local BMP helper to build planar pixel data.

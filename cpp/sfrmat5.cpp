@@ -14,6 +14,9 @@ namespace sfrmat5 {
 
 namespace {
 
+template <typename T>
+using Matrix = cv::Mat_<T>;
+
 template <typename T> struct Image {
     int rows = 0;
     int cols = 0;
@@ -522,7 +525,7 @@ std::vector<double> findfreq(const Matrix<double>& dat, double val, int imax, in
 
 /// Computes sampling efficiency percentages for requested SFR levels.
 Matrix<double> sampeff(const Matrix<double>& dat, const std::vector<double>& val, double del,
-                       int fflag) {
+                         int fflag) {
     if (dat.rows == 0 || dat.cols < 2) {
         return Matrix<double>();
     }
@@ -578,6 +581,18 @@ void rsquare(const std::vector<double>& y, const std::vector<double>& f, double&
     }
     r2 = (ss_tot == 0.0) ? 0.0 : std::max(0.0, 1.0 - ss_res / ss_tot);
     rmse = std::sqrt(ss_res / static_cast<double>(yy.size()));
+}
+
+/// Converts an internal OpenCV matrix to the public row-major matrix type.
+template <typename T> sfrmat5::Matrix<T> to_public_matrix(const Matrix<double>& input) {
+    sfrmat5::Matrix<T> out(static_cast<size_t>(input.rows),
+                           std::vector<T>(static_cast<size_t>(input.cols), static_cast<T>(0)));
+    for (int r = 0; r < input.rows; ++r) {
+        for (int c = 0; c < input.cols; ++c) {
+            out[static_cast<size_t>(r)][static_cast<size_t>(c)] = static_cast<T>(input(r, c));
+        }
+    }
+    return out;
 }
 
 /// Runs the double-precision SFR pipeline and returns raw double outputs.
@@ -807,10 +822,10 @@ SfrResult<double> compute_sfr_double(const Image<double>& input, double del, int
 
     SfrResult<double> result;
     result.status = 0;
-    result.dat = dat;
-    result.e = eff;
+    result.dat = to_public_matrix<double>(dat);
+    result.e = to_public_matrix<double>(eff);
     result.sfr50 = sfr50;
-    result.fitme = fitout;
+    result.fitme = to_public_matrix<double>(fitout);
     result.esf = esf_last;
     result.nbin = nbin;
     result.del2 = del2;
@@ -845,11 +860,12 @@ Image<double> to_double_image(const std::vector<T>& pixels, int width, int heigh
 }
 
 /// Casts a double-precision matrix to the requested scalar type.
-template <typename T> Matrix<T> cast_matrix(const Matrix<double>& input) {
-    Matrix<T> out(input.rows, input.cols);
-    for (int r = 0; r < input.rows; ++r) {
-        for (int c = 0; c < input.cols; ++c) {
-            out(r, c) = static_cast<T>(input(r, c));
+template <typename T> sfrmat5::Matrix<T> cast_matrix(const sfrmat5::Matrix<double>& input) {
+    sfrmat5::Matrix<T> out(input.size());
+    for (size_t r = 0; r < input.size(); ++r) {
+        out[r].resize(input[r].size(), static_cast<T>(0));
+        for (size_t c = 0; c < input[r].size(); ++c) {
+            out[r][c] = static_cast<T>(input[r][c]);
         }
     }
     return out;
