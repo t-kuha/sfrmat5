@@ -25,9 +25,11 @@ struct Image {
 
     /// Constructs a test image with channel planes initialized to a constant value.
     Image(int r, int c, int ch, Scalar value = static_cast<Scalar>(0))
-        : rows(r), cols(c), channels(ch), planes(ch, sfrmat5::Matrix<Scalar>(r, c)) {
+        : rows(r), cols(c), channels(ch) {
+        planes.reserve(ch);
         for (int i = 0; i < ch; ++i) {
-            planes[i].setConstant(value);
+            planes.emplace_back(r, c);
+            planes.back().setTo(value);
         }
     }
 };
@@ -44,11 +46,11 @@ bool nearly_equal(double actual, double expected, double tol) {
 
 /// Verifies that the first SFR data column is a strictly increasing frequency axis.
 bool check_frequency_axis(const sfrmat5::Matrix<Scalar>& dat) {
-    if (dat.rows() < 2 || dat.cols() < 2) {
+    if (dat.rows < 2 || dat.cols < 2) {
         return false;
     }
     double prev = dat(0, 0);
-    for (int i = 1; i < dat.rows(); ++i) {
+    for (int i = 1; i < dat.rows; ++i) {
         double cur = dat(i, 0);
         if (!(cur > prev)) {
             return false;
@@ -71,7 +73,7 @@ bool check_value(const char* label, double actual, double expected, double tol) 
 /// Checks one matrix element against an expected value and reports failures.
 bool check_matrix_value(const char* label, const sfrmat5::Matrix<Scalar>& m, int row, int col,
                         double expected, double tol) {
-    if (row >= m.rows() || col >= m.cols()) {
+    if (row >= m.rows || col >= m.cols) {
         std::cerr << label << " index out of range at (" << row << ", " << col << ")\n";
         return false;
     }
@@ -136,13 +138,13 @@ int main() {
     sfrmat5::SfrResult<Scalar> result =
         sfr.compute(std::move(pixels), img.cols, img.rows, img.channels);
 
-    if (result.dat.rows() == 0 || result.dat.cols() < 2) {
+    if (result.dat.rows == 0 || result.dat.cols < 2) {
         std::cerr << "SFR data missing\n";
         return 1;
     }
-    if (result.dat.rows() != 125 || result.dat.cols() != 5) {
-        std::cerr << "Unexpected SFR data dimensions: " << result.dat.rows() << "x"
-                  << result.dat.cols() << "\n";
+    if (result.dat.rows != 125 || result.dat.cols != 5) {
+        std::cerr << "Unexpected SFR data dimensions: " << result.dat.rows << "x"
+                  << result.dat.cols << "\n";
         return 1;
     }
     if (!check_frequency_axis(result.dat)) {
@@ -153,13 +155,13 @@ int main() {
         std::cerr << "SFR50 invalid\n";
         return 1;
     }
-    if (result.e.rows() == 0 || result.e.cols() == 0) {
+    if (result.e.rows == 0 || result.e.cols == 0) {
         std::cerr << "Sampling efficiency missing\n";
         return 1;
     }
-    if (result.e.rows() != 2 || result.e.cols() != 4) {
-        std::cerr << "Unexpected sampling efficiency dimensions: " << result.e.rows() << "x"
-                  << result.e.cols() << "\n";
+    if (result.e.rows != 2 || result.e.cols != 4) {
+        std::cerr << "Unexpected sampling efficiency dimensions: " << result.e.rows << "x"
+                  << result.e.cols << "\n";
         return 1;
     }
 
@@ -194,21 +196,21 @@ int main() {
 
     std::cout << "sfrmat5 basic test passed\n";
     std::cout << "SFR50: " << result.sfr50 << "\n";
-    if (result.e.rows() > 0 && result.e.cols() > 0) {
+    if (result.e.rows > 0 && result.e.cols > 0) {
         std::cout << "Sampling efficiency (10%): ";
-        for (int c = 0; c < result.e.cols(); ++c) {
+        for (int c = 0; c < result.e.cols; ++c) {
             std::cout << result.e(0, c);
-            if (c + 1 < result.e.cols()) {
+            if (c + 1 < result.e.cols) {
                 std::cout << ", ";
             }
         }
         std::cout << "\n";
     }
-    std::cout << "First " << result.dat.rows() << " SFR rows (freq, mtf...):\n";
-    for (int i = 0; i < result.dat.rows(); ++i) {
-        for (int c = 0; c < result.dat.cols(); ++c) {
+    std::cout << "First " << result.dat.rows << " SFR rows (freq, mtf...):\n";
+    for (int i = 0; i < result.dat.rows; ++i) {
+        for (int c = 0; c < result.dat.cols; ++c) {
             std::cout << result.dat(i, c);
-            if (c + 1 < result.dat.cols()) {
+            if (c + 1 < result.dat.cols) {
                 std::cout << ", ";
             }
         }

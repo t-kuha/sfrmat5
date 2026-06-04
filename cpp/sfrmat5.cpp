@@ -4,10 +4,11 @@
 
 #include <algorithm>
 #include <cmath>
-#include <complex>
 #include <limits>
 #include <stdexcept>
 #include <vector>
+
+#include <opencv2/core.hpp>
 
 namespace sfrmat5 {
 
@@ -23,13 +24,36 @@ template <typename T> struct Image {
     Image() = default;
 
     /// Constructs an image with channel planes initialized to a constant value.
-    Image(int r, int c, int ch, T value = static_cast<T>(0))
-        : rows(r), cols(c), channels(ch), planes(ch, Matrix<T>(r, c)) {
+    Image(int r, int c, int ch, T value = static_cast<T>(0)) : rows(r), cols(c), channels(ch) {
+        planes.reserve(ch);
         for (int i = 0; i < ch; ++i) {
-            planes[i].setConstant(value);
+            planes.emplace_back(r, c);
+            planes.back().setTo(value);
         }
     }
 };
+
+template <typename T> Matrix<T> zeros(int rows, int cols) {
+    return Matrix<T>(rows, cols, static_cast<T>(0));
+}
+
+double sum_region(const Matrix<double>& m, int row0, int row1, int col0, int col1) {
+    double sum = 0.0;
+    for (int r = row0; r < row1; ++r) {
+        for (int c = col0; c < col1; ++c) {
+            sum += m(r, c);
+        }
+    }
+    return sum;
+}
+
+double mean_row(const Matrix<double>& m, int row) {
+    return (m.cols == 0) ? 0.0 : sum_region(m, row, row + 1, 0, m.cols) / m.cols;
+}
+
+double mean_col(const Matrix<double>& m, int col) {
+    return (m.rows == 0) ? 0.0 : sum_region(m, 0, m.rows, col, col + 1) / m.rows;
+}
 
 struct MeanStddev {
     double mean = 0.0;
@@ -110,8 +134,8 @@ std::vector<double> polyfit_scaled(const std::vector<double>& x, const std::vect
         sx = 1.0;
     }
 
-    Eigen::MatrixXd A(n, m);
-    Eigen::VectorXd b(n);
+    cv::Mat1d A(n, m);
+    cv::Mat1d b(n, 1);
     for (int i = 0; i < n; ++i) {
         double z = (x[i] - mx) / sx;
         double value = 1.0;
@@ -122,10 +146,13 @@ std::vector<double> polyfit_scaled(const std::vector<double>& x, const std::vect
         b(i) = y[i];
     }
 
-    Eigen::VectorXd p2 = A.colPivHouseholderQr().solve(b);
-    std::vector<double> coeffs(p2.size(), 0.0);
-    for (int i = 0; i < p2.size(); ++i) {
-        coeffs[i] = p2(i);
+    cv::Mat1d p2;
+    if (!cv::solve(A, b, p2, cv::DECOMP_SVD)) {
+        throw std::runtime_error("polyfit: least-squares solve failed");
+    }
+    std::vector<double> coeffs(static_cast<size_t>(p2.rows), 0.0);
+    for (int i = 0; i < p2.rows; ++i) {
+        coeffs[i] = p2(i, 0);
     }
     return polyfit_convert(coeffs, x);
 }
@@ -159,17 +186,19 @@ std::vector<double> conv_same(const std::vector<double>& x, const std::vector<do
 
 /// Applies the finite-difference derivative filter to each matrix row.
 Matrix<double> deriv1(const Matrix<double>& a, const std::vector<double>& fil) {
-    Matrix<double> b(a.rows(), a.cols());
-    for (int r = 0; r < a.rows(); ++r) {
-        std::vector<double> row(a.cols());
-        Eigen::Map<const Eigen::VectorXd> row_vec(a.row(r).data(), a.cols());
-        Eigen::VectorXd::Map(&row[0], a.cols()) = row_vec;
+    Matrix<double> b = zeros<double>(a.rows, a.cols);
+    for (int r = 0; r < a.rows; ++r) {
+        std::vector<double> row(a.cols);
+        for (int c = 0; c < a.cols; ++c) {
+            row[c] = a(r, c);
+        }
         std::vector<double> temp = conv_same(row, fil);
-        Eigen::Map<const Eigen::VectorXd> temp_vec(temp.data(), a.cols());
-        b.row(r) = temp_vec.transpose();
-        if (a.cols() > 1) {
+        for (int c = 0; c < a.cols; ++c) {
+            b(r, c) = temp[c];
+        }
+        if (a.cols > 1) {
             b(r, 0) = b(r, 1);
-            b(r, a.cols() - 1) = b(r, a.cols() - 2);
+            b(r, a.cols - 1) = b(r, a.cols - 2);
         }
     }
     return b;
@@ -180,15 +209,16 @@ double centroid(const std::vector<double>& x) {
     if (x.empty()) {
         return 0.0;
     }
-    Eigen::Map<const Eigen::VectorXd> xv(x.data(), static_cast<int>(x.size()));
-    double sum = xv.sum();
+    double sum = 0.0;
+    double weighted_sum = 0.0;
+    for (size_t i = 0; i < x.size(); ++i) {
+        sum += x[i];
+        weighted_sum += static_cast<double>(i + 1) * x[i];
+    }
     if (sum == 0.0) {
         return 0.0;
     }
-    Eigen::VectorXd idx =
-        Eigen::VectorXd::LinSpaced(static_cast<int>(x.size()), 1.0, static_cast<double>(x.size()));
-    double loc = idx.dot(xv);
-    return loc / sum;
+    return weighted_sum / sum;
 }
 
 /// Recenters a vector around the requested center location.
@@ -215,8 +245,7 @@ std::vector<double> cent(const std::vector<double>& a, double center) {
 Image<double> rotate90(const Image<double>& in) {
     Image<double> out(in.cols, in.rows, in.channels, 0.0);
     for (int ch = 0; ch < in.channels; ++ch) {
-        // Rotate 90 degrees counterclockwise: transpose then flip vertically.
-        out.planes[ch] = in.planes[ch].transpose().colwise().reverse();
+        cv::rotate(in.planes[ch], out.planes[ch], cv::ROTATE_90_COUNTERCLOCKWISE);
     }
     return out;
 }
@@ -235,10 +264,10 @@ Image<double> rotatev2(const Image<double>& input) {
     int col_right = std::max(0, npix - nn - 1);
 
     const Matrix<double>& plane = input.planes[mm];
-    double mean_bot = plane.row(row_bot).mean();
-    double mean_top = plane.row(row_top).mean();
-    double mean_right = plane.col(col_right).mean();
-    double mean_left = plane.col(col_left).mean();
+    double mean_bot = mean_row(plane, row_bot);
+    double mean_top = mean_row(plane, row_top);
+    double mean_right = mean_col(plane, col_right);
+    double mean_left = mean_col(plane, col_left);
 
     double testv = std::abs(mean_bot - mean_top);
     double testh = std::abs(mean_right - mean_left);
@@ -250,8 +279,8 @@ Image<double> rotatev2(const Image<double>& input) {
 }
 
 /// Builds a Hamming window centered at the requested midpoint.
-Eigen::VectorXd ahamming(int n, double mid) {
-    Eigen::VectorXd data(n);
+std::vector<double> ahamming(int n, double mid) {
+    std::vector<double> data(n, 0.0);
     if (n == 0) {
         return data;
     }
@@ -259,56 +288,57 @@ Eigen::VectorXd ahamming(int n, double mid) {
     double wid1 = mid - 1.0;
     double wid2 = static_cast<double>(n) - mid;
     double wid = std::max(wid1, wid2);
-    Eigen::VectorXd idx = Eigen::VectorXd::LinSpaced(n, 1.0, static_cast<double>(n));
-    Eigen::VectorXd arg = (idx.array() - mid) * (M_PI / wid);
-    Eigen::VectorXd win = arg.array().cos();
-    data = 0.54 + 0.46 * win.array();
+    for (int i = 0; i < n; ++i) {
+        double idx = static_cast<double>(i + 1);
+        double arg = (idx - mid) * (M_PI / wid);
+        data[i] = 0.54 + 0.46 * std::cos(arg);
+    }
     return data;
 }
 
 /// Builds a symmetric Tukey window.
-Eigen::VectorXd tukey(int n, double alpha) {
+std::vector<double> tukey(int n, double alpha) {
     if (n == 1) {
-        Eigen::VectorXd w(1);
-        w(0) = 1.0;
-        return w;
+        return {1.0};
     }
     if (alpha == 0.0) {
-        return Eigen::VectorXd::Ones(n);
+        return std::vector<double>(n, 1.0);
     }
     double m = (n - 1) / 2.0;
     int half = static_cast<int>(m);
-    Eigen::VectorXd k = Eigen::VectorXd::LinSpaced(half + 1, 0.0, static_cast<double>(half));
-    Eigen::ArrayXd wk = Eigen::ArrayXd::Ones(half + 1);
+    std::vector<double> wk(half + 1, 1.0);
     double thresh = alpha * m;
     for (int i = 0; i <= half; ++i) {
-        if (k[i] <= thresh) {
-            wk[i] = 0.5 * (1 + std::cos(M_PI * (k[i] / (alpha * m) - 1)));
+        double k = static_cast<double>(i);
+        if (k <= thresh) {
+            wk[i] = 0.5 * (1 + std::cos(M_PI * (k / (alpha * m) - 1)));
         }
     }
-    Eigen::VectorXd out = Eigen::VectorXd::Zero(n);
-    out.head(half + 1) = wk.matrix();
-    out.tail(half + 1) = wk.reverse().matrix();
+    std::vector<double> out(n, 0.0);
+    for (int i = 0; i <= half; ++i) {
+        out[i] = wk[i];
+        out[n - 1 - i] = wk[i];
+    }
     return out;
 }
 
 /// Builds a Tukey window shifted to the requested midpoint.
-Eigen::VectorXd tukey2(int n, double alpha, double mid) {
+std::vector<double> tukey2(int n, double alpha, double mid) {
     if (n < 3) {
-        return Eigen::VectorXd::Ones(n);
+        return std::vector<double>(n, 1.0);
     }
     double m1 = n / 2.0;
     double m2 = mid;
     double m3 = n - mid;
     double mm = std::max(m2, m3);
     int n2 = static_cast<int>(std::round(2 * mm));
-    Eigen::VectorXd w = tukey(n2, alpha);
+    std::vector<double> w = tukey(n2, alpha);
     if (mid >= m1) {
-        w.conservativeResize(n);
+        w.resize(n, 0.0);
         return w;
     }
     int start = static_cast<int>(w.size()) - n;
-    return w.segment(start, n);
+    return std::vector<double>(w.begin() + start, w.begin() + start + n);
 }
 
 /// Computes correction factors for the derivative FIR frequency response.
@@ -346,8 +376,8 @@ struct ProjectResult {
 
 /// Projects a slanted edge image into a supersampled edge profile.
 ProjectResult project2(const Matrix<double>& bb, const std::vector<double>& fitme, int fac) {
-    int nlin = bb.rows();
-    int npix = bb.cols();
+    int nlin = bb.rows;
+    int npix = bb.cols;
     if (fac <= 0) {
         fac = 4;
     }
@@ -412,58 +442,40 @@ ProjectResult project2(const Matrix<double>& bb, const std::vector<double>& fitm
     return result;
 }
 
-/// Computes the discrete Fourier transform, using radix-2 recursion when possible.
-std::vector<std::complex<double>> fft(const std::vector<std::complex<double>>& x) {
-    int n = static_cast<int>(x.size());
-    if (n == 1) {
-        return x;
+/// Computes the discrete Fourier transform with OpenCV.
+cv::Mat1d fft_magnitude(const std::vector<double>& x) {
+    cv::Mat1d real(static_cast<int>(x.size()), 1);
+    for (int i = 0; i < real.rows; ++i) {
+        real(i, 0) = x[static_cast<size_t>(i)];
     }
-    if (n % 2 != 0) {
-        std::vector<std::complex<double>> out(n);
-        for (int k = 0; k < n; ++k) {
-            std::complex<double> sum(0.0, 0.0);
-            for (int t = 0; t < n; ++t) {
-                double angle = -2.0 * M_PI * k * t / n;
-                sum += x[t] * std::complex<double>(std::cos(angle), std::sin(angle));
-            }
-            out[k] = sum;
-        }
-        return out;
-    }
-    std::vector<std::complex<double>> even(n / 2);
-    std::vector<std::complex<double>> odd(n / 2);
-    for (int i = 0; i < n / 2; ++i) {
-        even[i] = x[2 * i];
-        odd[i] = x[2 * i + 1];
-    }
-    even = fft(even);
-    odd = fft(odd);
-    std::vector<std::complex<double>> out(n);
-    for (int k = 0; k < n / 2; ++k) {
-        double angle = -2.0 * M_PI * k / n;
-        std::complex<double> twiddle(std::cos(angle), std::sin(angle));
-        out[k] = even[k] + twiddle * odd[k];
-        out[k + n / 2] = even[k] - twiddle * odd[k];
-    }
-    return out;
+
+    cv::Mat1d planes[] = {real, cv::Mat1d::zeros(real.rows, 1)};
+    cv::Mat complex_signal;
+    cv::merge(planes, 2, complex_signal);
+    cv::dft(complex_signal, complex_signal);
+    cv::split(complex_signal, planes);
+
+    cv::Mat1d mag;
+    cv::magnitude(planes[0], planes[1], mag);
+    return mag;
 }
 
 /// Finds the spatial frequency where each SFR channel crosses the requested value.
 std::vector<double> findfreq(const Matrix<double>& dat, double val, int imax, int fflag) {
-    int nc = dat.cols() - 1;
+    int nc = dat.cols - 1;
     std::vector<double> freqval(nc, 0.0);
     std::vector<double> sfrval(nc, 0.0);
     double maxf = dat(imax - 1, 0);
     std::vector<double> fil = {1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0};
 
     for (int c = 0; c < nc; ++c) {
-        std::vector<double> col(dat.rows(), 0.0);
-        for (int r = 0; r < dat.rows(); ++r) {
+        std::vector<double> col(dat.rows, 0.0);
+        for (int r = 0; r < dat.rows; ++r) {
             col[r] = dat(r, c + 1);
         }
         if (fflag != 0) {
             std::vector<double> temp = conv_same(col, fil);
-            for (int r = 1; r < dat.rows() - 1; ++r) {
+            for (int r = 1; r < dat.rows - 1; ++r) {
                 col[r] = temp[r];
             }
         }
@@ -485,7 +497,7 @@ std::vector<double> findfreq(const Matrix<double>& dat, double val, int imax, in
             s = dat(x, 0);
             double y = col[x];
             double y2 = col[x + 1];
-            double denom = (dat.rows() > 1) ? dat(1, 0) : 0.0;
+            double denom = (dat.rows > 1) ? dat(1, 0) : 0.0;
             double slope = (denom == 0.0) ? 0.0 : (y2 - y) / denom;
             double dely = col[x] - val;
             if (slope != 0.0) {
@@ -511,27 +523,25 @@ std::vector<double> findfreq(const Matrix<double>& dat, double val, int imax, in
 /// Computes sampling efficiency percentages for requested SFR levels.
 Matrix<double> sampeff(const Matrix<double>& dat, const std::vector<double>& val, double del,
                        int fflag) {
-    if (dat.rows() == 0 || dat.cols() < 2) {
+    if (dat.rows == 0 || dat.cols < 2) {
         return Matrix<double>();
     }
     double hs = 0.495 / del;
-    int imax = dat.rows();
+    int imax = dat.rows;
     int nindex = -1;
-    for (int i = 0; i < dat.rows(); ++i) {
+    for (int i = 0; i < dat.rows; ++i) {
         if (dat(i, 0) > hs) {
             nindex = i;
             break;
         }
     }
     if (nindex < 0) {
-        Matrix<double> empty(static_cast<int>(val.size()), dat.cols() - 1);
-        empty.setZero();
+        Matrix<double> empty = zeros<double>(static_cast<int>(val.size()), dat.cols - 1);
         return empty;
     }
 
-    int nc = dat.cols() - 1;
-    Matrix<double> eff(static_cast<int>(val.size()), nc);
-    eff.setZero();
+    int nc = dat.cols - 1;
+    Matrix<double> eff = zeros<double>(static_cast<int>(val.size()), nc);
     for (size_t v = 0; v < val.size(); ++v) {
         std::vector<double> freq_sfr = findfreq(dat, val[v], imax, fflag);
         for (int c = 0; c < nc; ++c) {
@@ -602,8 +612,8 @@ SfrResult<double> compute_sfr_double(const Image<double>& input, double del, int
     int left_cols = std::min(5, npix);
     int right_cols = std::min(6, npix);
     const Matrix<double>& plane0 = a.planes[0];
-    double tleft = plane0.leftCols(left_cols).sum();
-    double tright = plane0.rightCols(right_cols).sum();
+    double tleft = sum_region(plane0, 0, plane0.rows, 0, left_cols);
+    double tright = sum_region(plane0, 0, plane0.rows, plane0.cols - right_cols, plane0.cols);
 
     std::vector<double> fil1 = {0.5, -0.5};
     std::vector<double> fil2 = {0.5, 0.0, -0.5};
@@ -612,12 +622,14 @@ SfrResult<double> compute_sfr_double(const Image<double>& input, double del, int
         fil2 = {-0.5, 0.0, 0.5};
     }
 
-    Eigen::VectorXd win1;
+    std::vector<double> win1;
     if (wflag == WindowFlag::Hamming) {
         win1 = ahamming(npix, (npix + 1) / 2.0);
     } else {
         win1 = tukey2(npix, alpha, (npix + 1) / 2.0);
-        win1 = win1.array() * 0.95 + 0.05;
+        for (double& v : win1) {
+            v = v * 0.95 + 0.05;
+        }
     }
 
     std::vector<std::vector<double>> loc(ncol, std::vector<double>(nlin, 0.0));
@@ -627,25 +639,28 @@ SfrResult<double> compute_sfr_double(const Image<double>& input, double del, int
     for (int color = 0; color < ncol; ++color) {
         Matrix<double> plane = a.planes[color];
         Matrix<double> deriv = deriv1(plane, fil1);
-        const Eigen::VectorXd& w1 = win1;
         for (int n = 0; n < nlin; ++n) {
             std::vector<double> row(npix, 0.0);
-            Eigen::Map<const Eigen::VectorXd> drow(deriv.row(n).data(), npix);
-            Eigen::VectorXd::Map(&row[0], npix) = (drow.array() * w1.array()).matrix();
+            for (int i = 0; i < npix; ++i) {
+                row[i] = deriv(n, i) * win1[i];
+            }
             loc[color][n] = centroid(row) - 0.5;
         }
         fitme[color] = findedge2(loc[color], nlin, npol);
 
         for (int n = 0; n < nlin; ++n) {
             double place = polyval(fitme[color], static_cast<double>(n));
-            Eigen::VectorXd win2 =
+            std::vector<double> win2 =
                 (wflag == WindowFlag::Hamming) ? ahamming(npix, place) : tukey2(npix, alpha, place);
             if (wflag == WindowFlag::Tukey) {
-                win2 = win2.array() * 0.95 + 0.05;
+                for (double& v : win2) {
+                    v = v * 0.95 + 0.05;
+                }
             }
             std::vector<double> row(npix, 0.0);
-            Eigen::Map<const Eigen::VectorXd> drow(deriv.row(n).data(), npix);
-            Eigen::VectorXd::Map(&row[0], npix) = (drow.array() * win2.array()).matrix();
+            for (int i = 0; i < npix; ++i) {
+                row[i] = deriv(n, i) * win2[i];
+            }
             loc[color][n] = centroid(row) - 0.5;
         }
 
@@ -686,7 +701,7 @@ SfrResult<double> compute_sfr_double(const Image<double>& input, double del, int
     if (nlin1 < nlin) {
         Image<double> cropped(nlin1, npix, ncol, 0.0);
         for (int ch = 0; ch < ncol; ++ch) {
-            cropped.planes[ch] = a.planes[ch].topRows(nlin1);
+            cropped.planes[ch] = a.planes[ch].rowRange(0, nlin1).clone();
         }
         a = cropped;
         nlin = a.rows;
@@ -709,16 +724,14 @@ SfrResult<double> compute_sfr_double(const Image<double>& input, double del, int
     int freqlim = (nbin == 1) ? 2 : 1;
     int nn2out = static_cast<int>(std::round(nn2 * freqlim / 2.0));
 
-    Matrix<double> mtf(nn, ncol);
-    mtf.setZero();
+    Matrix<double> mtf = zeros<double>(nn, ncol);
     std::vector<double> esf_last;
 
     for (int color = 0; color < ncol; ++color) {
         Matrix<double> plane = a.planes[color];
         ProjectResult proj = project2(plane, fitme[color], nbin);
         esf_last = proj.point;
-        Matrix<double> esf_mat(1, static_cast<int>(esf_last.size()));
-        esf_mat.setZero();
+        Matrix<double> esf_mat = zeros<double>(1, static_cast<int>(esf_last.size()));
         for (int i = 0; i < static_cast<int>(esf_last.size()); ++i) {
             esf_mat(0, i) = esf_last[i];
         }
@@ -749,35 +762,35 @@ SfrResult<double> compute_sfr_double(const Image<double>& input, double del, int
         }
         c = cent(c, mm);
         double center = nn / 2.0;
-        Eigen::VectorXd win =
+        std::vector<double> win =
             (wflag == WindowFlag::Hamming) ? ahamming(nn, center) : tukey2(nn, alpha, center);
-        Eigen::Map<Eigen::VectorXd> cv(c.data(), nn);
-        cv.array() *= win.array();
-
-        std::vector<std::complex<double>> cx(nn);
         for (int i = 0; i < nn; ++i) {
-            cx[i] = std::complex<double>(c[i], 0.0);
+            c[i] *= win[i];
         }
-        std::vector<std::complex<double>> fx = fft(cx);
-        double dc0 = std::abs(fx[0]);
+
+        cv::Mat1d fx = fft_magnitude(c);
+        double dc0 = fx(0, 0);
         for (int i = 0; i < nn2; ++i) {
-            double val = (dc0 == 0.0) ? 0.0 : std::abs(fx[i]) / dc0;
+            double val = (dc0 == 0.0) ? 0.0 : fx(i, 0) / dc0;
             val *= dcorr[i];
             mtf(i, color) = val;
         }
     }
 
     std::vector<double> freq(nn, 0.0);
-    Eigen::Map<Eigen::VectorXd> freqv(freq.data(), nn);
-    freqv = Eigen::VectorXd::LinSpaced(nn, 0.0, static_cast<double>(nn - 1)) / (del2 * nn);
-    Matrix<double> dat(nn2out, ncol + 1);
-    Eigen::Map<const Eigen::VectorXd> freqv2(freq.data(), nn);
-    dat.col(0) = freqv2.head(nn2out);
-    dat.block(0, 1, nn2out, ncol) = mtf.topRows(nn2out);
+    for (int i = 0; i < nn; ++i) {
+        freq[i] = static_cast<double>(i) / (del2 * nn);
+    }
+    Matrix<double> dat = zeros<double>(nn2out, ncol + 1);
+    for (int r = 0; r < nn2out; ++r) {
+        dat(r, 0) = freq[r];
+        for (int cidx = 0; cidx < ncol; ++cidx) {
+            dat(r, cidx + 1) = mtf(r, cidx);
+        }
+    }
 
     int fit_cols = static_cast<int>(fitme[0].size());
-    Matrix<double> fitout(ncol, (ncol > 2) ? fit_cols + 1 : fit_cols);
-    fitout.setZero();
+    Matrix<double> fitout = zeros<double>(ncol, (ncol > 2) ? fit_cols + 1 : fit_cols);
     for (int r = 0; r < ncol; ++r) {
         for (int c = 0; c < fit_cols; ++c) {
             fitout(r, c) = fitme[r][c];
@@ -789,7 +802,7 @@ SfrResult<double> compute_sfr_double(const Image<double>& input, double del, int
 
     std::vector<double> val = {0.1, 0.5};
     Matrix<double> eff = sampeff(dat, val, delimage, 0);
-    std::vector<double> freq_sfr = findfreq(dat, 0.5, dat.rows(), 0);
+    std::vector<double> freq_sfr = findfreq(dat, 0.5, dat.rows, 0);
     double sfr50 = freq_sfr.empty() ? 0.0 : freq_sfr[0];
 
     SfrResult<double> result;
@@ -833,9 +846,9 @@ Image<double> to_double_image(const std::vector<T>& pixels, int width, int heigh
 
 /// Casts a double-precision matrix to the requested scalar type.
 template <typename T> Matrix<T> cast_matrix(const Matrix<double>& input) {
-    Matrix<T> out(input.rows(), input.cols());
-    for (int r = 0; r < input.rows(); ++r) {
-        for (int c = 0; c < input.cols(); ++c) {
+    Matrix<T> out(input.rows, input.cols);
+    for (int r = 0; r < input.rows; ++r) {
+        for (int c = 0; c < input.cols; ++c) {
             out(r, c) = static_cast<T>(input(r, c));
         }
     }

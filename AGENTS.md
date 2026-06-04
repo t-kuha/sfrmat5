@@ -5,13 +5,15 @@ Use this guide to reproduce the C++ SFR computation results in this repo.
 ## Requirements
 
 - `g++` with C++17 support
-- Vendored Eigen headers in `third_party/eigen-3.4.0`
+- `cmake`, `curl`, and `unzip` to build OpenCV locally
+- Local OpenCV build in `third_party/opencv-install`
 
 ## Build and Run Tests
 
 From repo root:
 
 ```bash
+./scripts/build_opencv.sh
 ./run_tests.sh
 ```
 
@@ -33,5 +35,6 @@ The test prints SFR50, sampling efficiency, and the first rows of SFR data.
 - The C++ API is templated (`SfrMat5<T>`), with explicit instantiations for `float` and `double`.
 - Use the instance accessors to set `weight`, `npol`, `wflag`, and `del` before calling `compute()`.
 - `wflag` is a top-level enum (`WindowFlag`) with `Tukey` and `Hamming`.
-- Eigen is used for least-squares polynomial fitting; FFT remains custom.
-- Images are stored as per-channel Eigen matrices (`Image<T>::planes`); there is no `Image::at` accessor.
+- OpenCV is used for the public matrix API, least-squares polynomial fitting, and DFT.
+- `compute()` takes ownership of planar pixel data as `std::unique_ptr<std::vector<T>>` plus width, height, and channel count.
+- Image loading/storage is outside the public SFR API; the test uses a local BMP helper to build planar pixel data.

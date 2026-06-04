@@ -4,6 +4,9 @@ This repository contains a C++ refactor of the MATLAB `sfrmat5` ISO 12233 slante
 
 ## how to run test
 
+Requires `cmake`, `curl`, `unzip`, and a C++17 compiler.
+
 ```Shell
+$ ./scripts/build_opencv.sh
 $ ./run_tests.sh
 ```

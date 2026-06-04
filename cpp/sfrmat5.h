@@ -4,15 +4,15 @@
 #include <memory>
 #include <vector>
 
-#include <Eigen/Dense>
+#include <opencv2/core.hpp>
 
 namespace sfrmat5 {
 
 enum class WindowFlag { Tukey = 0, Hamming = 1 };
 
-/// Row-major dynamic Eigen matrix used by the SFR API.
+/// OpenCV matrix used by the SFR API.
 template <typename T>
-using Matrix = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+using Matrix = cv::Mat_<T>;
 
 /// Stores outputs from slanted-edge SFR analysis.
 template <typename T> struct SfrResult {
