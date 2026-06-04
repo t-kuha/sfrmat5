@@ -9,19 +9,18 @@ namespace sfrmat5 {
 enum class WindowFlag { Tukey = 0, Hamming = 1 };
 
 /// Row-major matrix used by the public SFR API.
-template <typename T>
-using Matrix = std::vector<std::vector<T>>;
+template <typename T> using Matrix = std::vector<std::vector<T>>;
 
 /// Stores outputs from slanted-edge SFR analysis.
 template <typename T> struct SfrResult {
-    int status = 0;                      // 0 on success.
-    Matrix<T> dat;                       // [frequency, mtf...] for each color/luminance.
-    Matrix<T> e;                         // sampling efficiency (nval x ncol).
-    T sfr50 = static_cast<T>(0);         // frequency where SFR = 50%.
-    Matrix<T> fitme;                     // polynomial coefficients (+ misregistration if present).
-    std::vector<T> esf;                  // last computed supersampled edge profile.
-    int nbin = 4;                        // binning factor used.
-    T del2 = static_cast<T>(0);          // sampling interval for ESF.
+    int status = 0;              // 0 on success.
+    Matrix<T> dat;               // [frequency, mtf...] for each color/luminance.
+    Matrix<T> e;                 // sampling efficiency (nval x ncol).
+    T sfr50 = static_cast<T>(0); // frequency where SFR = 50%.
+    Matrix<T> fitme;             // polynomial coefficients (+ misregistration if present).
+    std::vector<T> esf;          // last computed supersampled edge profile.
+    int nbin = 4;                // binning factor used.
+    T del2 = static_cast<T>(0);  // sampling interval for ESF.
 };
 
 /// Performs ISO 12233 slanted-edge SFR analysis on planar pixel data.

@@ -14,8 +14,7 @@ namespace sfrmat5 {
 
 namespace {
 
-template <typename T>
-using Matrix = cv::Mat_<T>;
+template <typename T> using Matrix = cv::Mat_<T>;
 
 template <typename T> struct Image {
     int rows = 0;
@@ -81,8 +80,8 @@ MeanStddev mean_stddev(const std::vector<double>& v) {
     if (v.size() > 1) {
         double sum_squared_deviations =
             sum_squares - static_cast<double>(v.size()) * stats.mean * stats.mean;
-        stats.stddev = std::sqrt(std::max(0.0, sum_squared_deviations) /
-                                 static_cast<double>(v.size() - 1));
+        stats.stddev =
+            std::sqrt(std::max(0.0, sum_squared_deviations) / static_cast<double>(v.size() - 1));
     }
     return stats;
 }
@@ -525,7 +524,7 @@ std::vector<double> findfreq(const Matrix<double>& dat, double val, int imax, in
 
 /// Computes sampling efficiency percentages for requested SFR levels.
 Matrix<double> sampeff(const Matrix<double>& dat, const std::vector<double>& val, double del,
-                         int fflag) {
+                       int fflag) {
     if (dat.rows == 0 || dat.cols < 2) {
         return Matrix<double>();
     }
